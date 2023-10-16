@@ -20,8 +20,8 @@ A time-series model that decomposes a daily time-series into seasonality, trend,
      - yearly_seasonality: 365.25 days
 
 ### Future updates:
- - unit tests
- - deploy to pip
+ - add unit tests to pipeline
+ - add deploy to pip into pipeline
  - weighted fitting: fit the data whilst placing greater emphasis on more recent data or periods of higher importance
  - higher fourier orders: fit multiple waves per seasonal component to create a more nuanced fit
  - confidence intervals
