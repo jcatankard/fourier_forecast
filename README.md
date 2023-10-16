@@ -7,6 +7,9 @@ A time-series model that decomposes a daily time-series into seasonality, trend,
 - Additive or multiplicative seasonality can be fitted
 - Numba is used for performance boost
 
+The main purpose of this is to educate myself on Fast Fourier Transformations and gradient descent.
+It is not advised to use this at this point in time.
+
 ### Seasonality:
 - In theory seasonal components can be fitted with less training data than a full season
   - e.g. yearly seasonality can be fitted even when the training data covers just 9 months
