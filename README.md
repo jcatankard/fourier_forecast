@@ -82,7 +82,7 @@ plt.legend()
 plt.show()
 ```
 <p float="left">
-  <img src="./images/example_fourier_forecast.png" width="100%" />
+  <img src="./images/example_train_preds.png" width="100%" />
 </p>
 
 ```
