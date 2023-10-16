@@ -34,6 +34,7 @@ A time-series model that decomposes a daily time-series into seasonality, trend,
  - yearly_seasonality: bool, default=True
  - multiplicative_seasonality: bool, default=False
    - False is equivalent to additive seasonality
+   - For multiplicative, all values (for training) and regressors for (training & predicting) must be positive
  - learning_rate: float, default=0.001
  - n_iterations: int, default=100_000
 
