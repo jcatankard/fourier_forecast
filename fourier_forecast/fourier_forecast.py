@@ -14,11 +14,9 @@ class FourierForecast:
                  monthly_seasonality: bool = False,
                  quarterly_seasonality: bool = False,
                  yearly_seasonality: bool = True,
-                 multiplicative_seasonality: bool = False,
                  learning_rate: float = 0.001,
                  n_iterations: int = 100_000
                  ):
-        self.multiplicative_seasonality: bool = multiplicative_seasonality
         self.learning_rate: float = learning_rate
         self.n_iterations: int = n_iterations
 
@@ -70,17 +68,15 @@ class FourierForecast:
     def _initiate_regressors(self, regressors: NDArray, size: int, default_width: int) -> NDArray[np.float64]:
         regressors = np.zeros((size, default_width), dtype=np.float64) \
             if regressors is None else self._to_numpy(regressors)
-        self.regressors = np.log(regressors) if self.multiplicative_seasonality else regressors
 
         if self.n_regressors is None:
             self.n_regressors = regressors.shape[1]
             self.regressor_weights = np.zeros(self.n_regressors, dtype=np.float64)
 
-        return np.log(regressors) if self.multiplicative_seasonality else regressors
+        return regressors
 
     def fit(self, ds: list[date] | NDArray[date], y: NDArray[np.float64], regressors: NDArray[np.float64] = None):
-        y = self._to_numpy(y)
-        self.y = np.log(y) if self.multiplicative_seasonality else y
+        self.y = self._to_numpy(y)
 
         self.min_date = min(ds)
         self.ds = np.array([(d - self.min_date).days for d in ds], dtype=np.int64)
@@ -107,48 +103,34 @@ class FourierForecast:
                 ) -> NDArray[np.float64]:
         ds = np.array([(d - self.min_date).days for d in ds], dtype=np.int64)
         regressors = self._initiate_regressors(regressors, ds.size, self.n_regressors)
+        return predict(ds,
+                       self.bias,
+                       self.trend,
+                       self.amplitudes,
+                       self.phases,
+                       self.frequencies,
+                       regressors,
+                       self.regressor_weights
+                       )
 
-        preds = predict(ds,
-                        self.bias,
-                        self.trend,
-                        self.amplitudes,
-                        self.phases,
-                        self.frequencies,
-                        regressors,
-                        self.regressor_weights
-                        )
-        return np.exp(preds) if self.multiplicative_seasonality else preds
+    @staticmethod
+    def subplot(ax, ds: NDArray, data: NDArray, label: str, title: str = None):
+        ax.plot(ds, data, label=label)
+        ax.set_title(label if title is None else title)
 
     def plot_components(self):
         ds = np.array([self.min_date + timedelta(days=int(d)) for d in self.ds])
         fig, ax = plt.subplots(nrows=3, ncols=2)
 
-        b = create_bias(self.bias, self.ds)
-        b = np.exp(b) if self.multiplicative_seasonality else b
-        ax[0, 0].plot(ds, b, label='bias')
-        ax[0, 0].set_title('bias')
-
-        t = create_trend(self.trend, self.ds)
-        t = np.exp(t) if self.multiplicative_seasonality else t
-        ax[0, 1].plot(ds, t, label='trend')
-        ax[0, 1].set_title('trend')
+        self.subplot(ax[0, 0], ds, create_bias(self.bias, self.ds), 'bias')
+        self.subplot(ax[0, 1], ds, create_trend(self.trend, self.ds), 'trend')
 
         for w in range(self.amplitudes.size):
             s = sin_wave(self.amplitudes[w], self.phases[w], self.frequencies[w], self.ds)
-            s = np.exp(s) if self.multiplicative_seasonality else s
-            ax[1, 0].plot(ds, s, label=f'seasonality {w + 1}')
-        ax[1, 0].set_title('seasonality')
+            self.subplot(ax[1, 0], ds, s, f'seasonality {w + 1}', 'seasonality')
 
-        r = self.regressors @ self.regressor_weights
-        r = np.exp(r) if self.multiplicative_seasonality else r
-        ax[1, 1].plot(ds, r, label='regressors')
-        ax[1, 1].set_title('regressors')
-
-        regressors = np.exp(self.regressors) if self.multiplicative_seasonality else self.regressors
-        y = np.exp(self.y) if self.multiplicative_seasonality else self.y
-        ax[2, 0].plot(ds, y - self.predict(ds, regressors), label='noise')
-        ax[2, 0].set_title('noise')
-
+        self.subplot(ax[1, 1], ds, self.regressors @ self.regressor_weights, 'regressors')
+        self.subplot(ax[2, 0], ds, self.y - self.predict(ds, self.regressors), 'noise')
         ax[2, 1].axis('off')
         plt.show()
 
