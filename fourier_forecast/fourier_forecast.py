@@ -67,6 +67,17 @@ class FourierForecast:
         self.trend = gradient
         self.bias = (self.trend_estimate - gradient * self.ds).mean()
 
+    def _initiate_regressors(self, regressors: NDArray, size: int, default_width: int) -> NDArray[np.float64]:
+        regressors = np.zeros((size, default_width), dtype=np.float64) \
+            if regressors is None else self._to_numpy(regressors)
+        self.regressors = np.log(regressors) if self.multiplicative_seasonality else regressors
+
+        if self.n_regressors is None:
+            self.n_regressors = regressors.shape[1]
+            self.regressor_weights = np.zeros(self.n_regressors, dtype=np.float64)
+
+        return np.log(regressors) if self.multiplicative_seasonality else regressors
+
     def fit(self, ds: list[date] | NDArray[date], y: NDArray[np.float64], regressors: NDArray[np.float64] = None):
         y = self._to_numpy(y)
         self.y = np.log(y) if self.multiplicative_seasonality else y
@@ -76,12 +87,7 @@ class FourierForecast:
 
         self._initiate_seasonality_estimates()
         self._initiate_trend_estimates()
-
-        regressors = np.zeros((y.size, 0), dtype=np.float64) \
-            if regressors is None else self._to_numpy(regressors)
-        self.regressors = np.log(regressors) if self.multiplicative_seasonality else regressors
-        self.n_regressors = self.regressors.shape[1]
-        self.regressor_weights = np.zeros(self.n_regressors, dtype=np.float64)
+        self.regressors = self._initiate_regressors(regressors, y.size, 0)
 
         results = gradient_descent(self.ds,
                                    self.bias,
@@ -100,9 +106,7 @@ class FourierForecast:
     def predict(self, ds: list[date] | NDArray[date], regressors: NDArray[np.float64] = None
                 ) -> NDArray[np.float64]:
         ds = np.array([(d - self.min_date).days for d in ds], dtype=np.int64)
-        regressors = np.zeros(shape=(ds.size, self.n_regressors), dtype=np.float64) \
-            if regressors is None else regressors
-        regressors = np.log(regressors) if self.multiplicative_seasonality else regressors
+        regressors = self._initiate_regressors(regressors, ds.size, self.n_regressors)
 
         preds = predict(ds,
                         self.bias,
