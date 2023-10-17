@@ -53,7 +53,7 @@ class TestFourierForecast(unittest.TestCase):
             np.testing.assert_allclose(y, preds, atol=self.atol, rtol=self.rtol)
 
     def test_basic(self):
-        self.run_test(name='basic test', regressors=False)
+        self.run_test(name='basic tests', regressors=False)
 
     def test_regressors(self):
-        self.run_test(name='regressors test', regressors=True)
+        self.run_test(name='regressors tests', regressors=True)
