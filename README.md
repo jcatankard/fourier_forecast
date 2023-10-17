@@ -4,7 +4,6 @@ A time-series model that decomposes a daily time-series into seasonality, trend,
 - The initial seasonality amplitude and phase are inferred by Fast Fourier Transformation
 - This is then fine-tuned and fitted with the other components using gradient descent
 - Components can be visualised with plot_components method
-- Additive or multiplicative seasonality can be fitted
 - Numba is used for performance boost
 
 The main purpose of this is to educate myself on Fast Fourier Transformations and gradient descent.
@@ -21,6 +20,8 @@ It is not advised to use this at this point in time.
      - monthly_seasonality: 30.43 days
      - quarterly_seasonality: 91.31 days
      - yearly_seasonality: 365.25 days
+  - For multiplicative seasonality, it may be best to log transform your time-series before fitting
+    - where necessary it may also be appropriate to log transform some or all regressors
 
 ### Future updates:
  - add unit tests to pipeline
@@ -35,9 +36,6 @@ It is not advised to use this at this point in time.
  - monthly_seasonality: bool, default=False
  - quarterly_seasonality: bool, default=False
  - yearly_seasonality: bool, default=True
- - multiplicative_seasonality: bool, default=False
-   - False is equivalent to additive seasonality
-   - For multiplicative, all values (for training) and regressors for (training & predicting) must be positive
  - learning_rate: float, default=0.001
  - n_iterations: int, default=100_000
 
