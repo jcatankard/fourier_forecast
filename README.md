@@ -38,6 +38,8 @@ It is not advised to use this at this point in time.
  - yearly_seasonality: bool, default=True
  - learning_rate: float, default=0.001
  - n_iterations: int, default=100_000
+ - tol: float, default=1e-5
+   - stops training if the max, absolute parameter update is smaller than tol
 
 ### Methods
  - fit
@@ -58,7 +60,7 @@ It is not advised to use this at this point in time.
    - plots bias, trends, seasonality, regressors and noise
 
 ## Examples
-```
+```python
 from fourier_forecast.fourier_forecast import FourierForecast
 import matplotlib.pyplot as plt
 
@@ -87,7 +89,7 @@ plt.show()
   <img src="./images/example_train_preds.png" width="100%" />
 </p>
 
-```
+```python
 from fourier_forecast.fourier_forecast import FourierForecast
 
 

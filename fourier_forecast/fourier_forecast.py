@@ -15,10 +15,12 @@ class FourierForecast:
                  quarterly_seasonality: bool = False,
                  yearly_seasonality: bool = True,
                  learning_rate: float = 0.001,
-                 n_iterations: int = 100_000
+                 n_iterations: int = 100_000,
+                 tol: float = 1e-05
                  ):
         self.learning_rate: float = learning_rate
         self.n_iterations: int = n_iterations
+        self.tol = tol
 
         self.time_periods = np.array([7, 30.43, 91.31, 365.25]
                                      )[[weekly_seasonality,
@@ -95,7 +97,8 @@ class FourierForecast:
                                    self.regressor_weights,
                                    self.y,
                                    self.learning_rate,
-                                   self.n_iterations
+                                   self.n_iterations,
+                                   self.tol
                                    )
         self.bias, self.trend, self.amplitudes, self.phases, self.frequencies, self.regressor_weights = results
 

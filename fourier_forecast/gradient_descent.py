@@ -103,7 +103,8 @@ def update_bias(bias: float, cost_derivative: NDArray[np.float64], learning_rate
     float64[::1],
     float64[::1],
     float64,
-    int64
+    int64,
+    float64
 ), cache=True)
 def gradient_descent(ds: NDArray[np.int64],
                      bias: float,
@@ -115,8 +116,10 @@ def gradient_descent(ds: NDArray[np.int64],
                      regressor_weights: NDArray[np.float64],
                      y: NDArray[np.float64],
                      learning_rate: float,
-                     n_iterations: int
+                     n_iterations: int,
+                     tol: float
                      ):
+    params = np.concatenate((np.array([bias, trend]), amps, phases, regressor_weights), axis=0)
     for _ in range(n_iterations):
         cost_derivative = find_cost_derivative(ds,
                                                bias,
@@ -132,6 +135,12 @@ def gradient_descent(ds: NDArray[np.int64],
         bias = update_bias(bias, cost_derivative, learning_rate)
         trend = update_trend(trend, cost_derivative, ds, learning_rate)
         regressor_weights = update_regressor_weights(regressor_weights, regressors, cost_derivative, learning_rate)
+
+        new_params = np.concatenate((np.array([bias, trend]), amps, phases, regressor_weights), axis=0)
+        max_update = np.absolute(new_params - params).max()
+        if max_update < tol:
+            break
+        params = np.copy(new_params)
 
     return (bias,
             trend,
