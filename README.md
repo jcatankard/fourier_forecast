@@ -24,11 +24,10 @@ It is not advised to use this at this point in time.
     - where necessary it may also be appropriate to log transform some or all regressors
 
 ### Future updates:
- - add unit tests to pipeline
- - add deploy to pip into pipeline
  - weighted fitting: fit the data whilst placing greater emphasis on more recent data or periods of higher importance
  - higher fourier orders: fit multiple waves per seasonal component to create a more nuanced fit
  - confidence intervals
+ - add deploy to pip into pipeline
 
 ## FourierForecast
 ### Parameters
