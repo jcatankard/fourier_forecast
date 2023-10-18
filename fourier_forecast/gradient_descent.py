@@ -5,37 +5,10 @@ from numpy.typing import NDArray
 import numpy as np
 
 
-@njit(float64[::1](
-    int64[::1],
-    float64,
-    float64,
-    float64[::1],
-    float64[::1],
-    float64[::1],
-    float64[:, ::1],
-    float64[::1],
-    float64[::1]
-), cache=True)
-def find_cost_derivative(ds: NDArray[np.int64],
-                         bias: float,
-                         trend: float,
-                         amplitudes: NDArray[np.float64],
-                         phases: NDArray[np.float64],
-                         frequencies: NDArray[np.float64],
-                         regressors: NDArray[np.float64],
-                         regressor_weights: NDArray[np.float64],
-                         y: NDArray[np.float64]
+@njit(float64[::1](int64[::1], float64[::1], float64[::1]), cache=True)
+def find_cost_derivative(ds: NDArray[np.int64], y: NDArray[np.float64], y_pred: NDArray[np.float64]
                          ) -> NDArray[np.float64]:
     """cost function -> mse = (1 / n) * (y_pred - y) ** 2 -> (2/n) * (y_pred - y)"""
-    y_pred = predict(ds,
-                     bias,
-                     trend,
-                     amplitudes,
-                     phases,
-                     frequencies,
-                     regressors,
-                     regressor_weights
-                     )
     return (2 / ds.size) * (y_pred - y)
 
 
@@ -121,16 +94,16 @@ def gradient_descent(ds: NDArray[np.int64],
                      ):
     params = np.concatenate((np.array([bias, trend]), amps, phases, regressor_weights), axis=0)
     for _ in range(n_iterations):
-        cost_derivative = find_cost_derivative(ds,
-                                               bias,
-                                               trend,
-                                               amps,
-                                               phases,
-                                               freqs,
-                                               regressors,
-                                               regressor_weights,
-                                               y
-                                               )
+        y_pred = predict(ds,
+                         bias,
+                         trend,
+                         amps,
+                         phases,
+                         freqs,
+                         regressors,
+                         regressor_weights
+                         )
+        cost_derivative = find_cost_derivative(ds, y, y_pred)
         amps, phases, freqs = update_waves(amps, phases, freqs, ds, cost_derivative, learning_rate)
         bias = update_bias(bias, cost_derivative, learning_rate)
         trend = update_trend(trend, cost_derivative, ds, learning_rate)
