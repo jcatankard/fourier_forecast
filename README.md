@@ -60,6 +60,7 @@ It is not advised to use this at this point in time.
    - plots bias, trends, seasonality, regressors and noise
 
 ## Examples
+### fit and predict example
 ```python
 from fourier_forecast.fourier_forecast import FourierForecast
 import matplotlib.pyplot as plt
@@ -71,7 +72,7 @@ actuals = ...
 train_test_split = .8
 n_train = int(len(dates) * train_test_split)
 
-train_dates = ds[: n_train]
+train_dates = dates[: n_train]
 train_actuals = actuals[: n_train]
 
 ff = FourierForecast()
@@ -79,9 +80,9 @@ ff = FourierForecast()
 ff.fit(train_dates, train_actuals, regressors=None)
 preds = ff.predict(ds=dates, regressors=None)
 
-plt.plot(ds, actuals, label='actuals')
-plt.plot(test_dates, preds[: n_train], label='train')
-plt.plot(ds[n_train: ], preds[n_train: ], label='preds')
+plt.plot(dates, actuals, label='actuals')
+plt.plot(train_dates, preds[: n_train], label='train')
+plt.plot(dates[n_train: ], preds[n_train: ], label='preds')
 plt.legend()
 plt.show()
 ```
@@ -89,6 +90,7 @@ plt.show()
   <img src="./images/example_train_preds.png" width="100%" />
 </p>
 
+### regressor example with plot_components()
 ```python
 from fourier_forecast.fourier_forecast import FourierForecast
 
@@ -107,3 +109,30 @@ ff.plot_components()
 <p float="left">
   <img src="./images/example_plot_components.png" width="100%" />
 </p>
+
+### multiplicative seasonality example
+```python
+from fourier_forecast.fourier_forecast import FourierForecast
+import numpy as np
+
+
+dates = ...
+actuals = ...
+regressors = ...
+
+train_test_split = .8
+n_train = int(len(dates) * train_test_split)
+
+ff = FourierForecast() 
+ff.fit(ds=dates[: n_train],
+       y=np.log(actuals[: n_train]),
+       regressors=regressors[: n_train]
+       )
+preds = np.exp(
+    ff.predict(ds=dates[n_train: ],
+               regressors=regressors[n_train: ]
+               )
+)
+mape = np.absolute(preds / actuals[n_train: ] - 1) / preds.size
+print(mape)
+```
