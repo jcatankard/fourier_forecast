@@ -18,9 +18,9 @@ class FourierForecast:
                  n_iterations: int = 100_000,
                  tol: float = 1e-05
                  ):
-        self.learning_rate: float = learning_rate
-        self.n_iterations: int = n_iterations
-        self.tol = tol
+        self.learning_rate: float = float(learning_rate)
+        self.n_iterations: int = int(n_iterations)
+        self.tol = float(tol)
 
         self.time_periods = np.array([7, 30.43, 91.31, 365.25]
                                      )[[weekly_seasonality,
