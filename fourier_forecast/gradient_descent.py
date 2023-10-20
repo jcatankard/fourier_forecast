@@ -5,11 +5,14 @@ from numpy.typing import NDArray
 import numpy as np
 
 
-@njit(float64[::1](int64[::1], float64[::1], float64[::1]), cache=True)
-def find_cost_derivative(ds: NDArray[np.int64], y: NDArray[np.float64], y_pred: NDArray[np.float64]
+@njit(float64[::1](int64[::1], float64[::1], float64[::1], float64[::1]), cache=True)
+def find_cost_derivative(ds: NDArray[np.int64],
+                         y: NDArray[np.float64],
+                         y_pred: NDArray[np.float64],
+                         sample_weight: NDArray[np.float64]
                          ) -> NDArray[np.float64]:
     """cost function -> mse = (1 / n) * (y_pred - y) ** 2 -> (2/n) * (y_pred - y)"""
-    return (2 / ds.size) * (y_pred - y)
+    return (2 / ds.size) * (y_pred - y) * sample_weight
 
 
 @njit(float64(float64, float64[::1], int64[::1], float64), cache=True)
@@ -77,7 +80,8 @@ def update_bias(bias: float, cost_derivative: NDArray[np.float64], learning_rate
     float64[::1],
     float64,
     int64,
-    float64
+    float64,
+    float64[::1],
 ), cache=True)
 def gradient_descent(ds: NDArray[np.int64],
                      bias: float,
@@ -90,7 +94,8 @@ def gradient_descent(ds: NDArray[np.int64],
                      y: NDArray[np.float64],
                      learning_rate: float,
                      n_iterations: int,
-                     tol: float
+                     tol: float,
+                     sample_weight: NDArray[np.float64]
                      ):
     params = np.concatenate((np.array([bias, trend]), amps, phases, regressor_weights), axis=0)
     for _ in range(n_iterations):
@@ -103,7 +108,7 @@ def gradient_descent(ds: NDArray[np.int64],
                          regressors,
                          regressor_weights
                          )
-        cost_derivative = find_cost_derivative(ds, y, y_pred)
+        cost_derivative = find_cost_derivative(ds, y, y_pred, sample_weight)
         amps, phases, freqs = update_waves(amps, phases, freqs, ds, cost_derivative, learning_rate)
         bias = update_bias(bias, cost_derivative, learning_rate)
         trend = update_trend(trend, cost_derivative, ds, learning_rate)

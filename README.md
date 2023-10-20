@@ -24,7 +24,6 @@ It is not advised to use this at this point in time.
     - where necessary it may also be appropriate to log transform some or all regressors
 
 ### Future updates:
- - weighted fitting: fit the data whilst placing greater emphasis on more recent data or periods of higher importance
  - higher fourier orders: fit multiple waves per seasonal component to create a more nuanced fit
  - confidence intervals
  - add deploy to pip into pipeline
@@ -48,6 +47,8 @@ It is not advised to use this at this point in time.
      - daily time-series ordered by date
    - regressors: NDArray[float], default=None
      - optional regressors for fitting non-seasonal components ordered by date
+   - sample_weight: NDArray[float], default=None
+     - individual weights for each sample
  - predict
    - ds: NDArray[date] | list[date]
      - dates corresponding to days to predict

@@ -41,6 +41,7 @@ class FourierForecast:
         self.ds: NDArray[np.int64] = None
         self.min_date: date = None
         self.y: NDArray[np.float64] = None
+        self.sample_weight: NDArray[np.float64] = None
         self.trend_estimate: NDArray[np.float64] = None
 
     @staticmethod
@@ -77,8 +78,27 @@ class FourierForecast:
 
         return regressors
 
-    def fit(self, ds: list[date] | NDArray[date], y: NDArray[np.float64], regressors: NDArray[np.float64] = None):
+    def _initiate_sample_weight(self, sample_weight: NDArray[np.float64]):
+        if sample_weight is None:
+            self.sample_weight = np.ones_like(self.y, dtype=np.float64)
+        elif min(sample_weight) < 0:
+            raise ValueError('All sample weights must be >= 0')
+        elif max(sample_weight) == 0:
+            raise ValueError('Max sample weight must be greater than zero')
+        elif len(sample_weight) != self.y.size:
+            raise ValueError('Size of sample weight must be same as time-series data')
+        else:
+            sample_weight = self._to_numpy(sample_weight)
+            self.sample_weight = sample_weight / sample_weight.max()
+
+    def fit(self,
+            ds: list[date] | NDArray[date],
+            y: NDArray[np.float64],
+            regressors: NDArray[np.float64] = None,
+            sample_weight: NDArray[np.float64] = None
+            ):
         self.y = self._to_numpy(y)
+        self._initiate_sample_weight(sample_weight)
 
         self.min_date = min(ds)
         self.ds = np.array([(d - self.min_date).days for d in ds], dtype=np.int64)
@@ -98,7 +118,8 @@ class FourierForecast:
                                    self.y,
                                    self.learning_rate,
                                    self.n_iterations,
-                                   self.tol
+                                   self.tol,
+                                   self.sample_weight
                                    )
         self.bias, self.trend, self.amplitudes, self.phases, self.frequencies, self.regressor_weights = results
 

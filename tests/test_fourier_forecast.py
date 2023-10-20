@@ -39,21 +39,41 @@ def create_data(regressors: bool) -> tuple[NDArray[date], NDArray[np.float64], N
 
 class TestFourierForecast(unittest.TestCase):
 
-    atol = 1e-01
-    rtol = 1e-01
+    atol = 0.1
+    rtol = 0.1
     n_tests = 3
 
-    def run_test(self, name: str, regressors: bool):
+    def test_basic(self):
         for i in range(self.n_tests):
-            print(f'{name}: {i + 1}')
-            ds, y, r = create_data(regressors)
+            print(f'basic tests: {i + 1}')
+            ds, y, _ = create_data(regressors=False)
             ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True)
-            ff.fit(ds, y, regressors=r if regressors else None)
-            preds = ff.predict(ds, regressors=r if regressors else None)
+            ff.fit(ds, y)
+            preds = ff.predict(ds)
             np.testing.assert_allclose(y, preds, atol=self.atol, rtol=self.rtol)
 
-    def test_basic(self):
-        self.run_test(name='basic tests', regressors=False)
-
     def test_regressors(self):
-        self.run_test(name='regressors tests', regressors=True)
+        for i in range(self.n_tests):
+            print(f'regressors tests: {i + 1}')
+            ds, y, r = create_data(regressors=True)
+            ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True)
+            ff.fit(ds, y, regressors=r)
+            preds = ff.predict(ds, regressors=r)
+            np.testing.assert_allclose(y, preds, atol=self.atol, rtol=self.rtol)
+
+    def test_sample_weight(self):
+        for i in range(self.n_tests):
+            print(f'sample weight test: {i + 1}')
+            ds, y, _ = create_data(regressors=False)
+
+            # if apply zero weight to the first x values, then we can multiply them by a random number and it
+            # should not impact the prediction against the last (y.size - x) values
+            x = np.random.randint(y.size // 4, y.size - 366)
+            w = np.concatenate([np.zeros(x), np.ones(y.size - x)], axis=0)
+            y[: x] *= np.random.rand()
+
+            ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True)
+            ff.fit(ds, y, sample_weight=w)
+
+            preds = ff.predict(ds)
+            np.testing.assert_allclose(y[x:], preds[x:], atol=self.atol, rtol=self.rtol)
