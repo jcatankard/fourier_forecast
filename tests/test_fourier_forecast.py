@@ -17,7 +17,7 @@ def make_regressors(t: NDArray[np.int64], regressors: bool) -> NDArray:
     return np.random.choice([0, 1], size=t.size * n_features, p=[p, 1 - p]).reshape(t.size, -1)
 
 
-def create_data(regressors: bool) -> tuple[NDArray[date], NDArray[np.float64], NDArray[np.float64]]:
+def create_data(regressors: bool, fourier_order: int) -> tuple[NDArray[date], NDArray[np.float64], NDArray[np.float64]]:
 
     size = np.random.randint(366 * 2, 366 * 3)
     ds = np.arange(date.today() - timedelta(days=size), date.today()).astype('O')
@@ -25,14 +25,15 @@ def create_data(regressors: bool) -> tuple[NDArray[date], NDArray[np.float64], N
     regressor_x = make_regressors(t, regressors)
 
     y_clean = np.array([
-        make_wave(t, 1 / 7),  # weeks
-        make_wave(t, 1 / 30.43),  # months
-        make_wave(t, 1 / 91.31),  # quarters
-        make_wave(t, 1 / 365.25),  # years
         np.random.normal(0, 1) * t,  # trend
         np.random.choice([-1, 1]) * np.random.randint(1, 100) * np.ones(size),  # bias
         np.sum(regressor_x, axis=1)  # regressors
     ]).sum(axis=0)
+
+    # weeks, months, quarters, years
+    for i in [7, 30.43, 91.31, 365.25]:
+        for f in range(fourier_order):
+            y_clean += make_wave(t, (f + 1) / i)
 
     return ds, y_clean, regressor_x
 
@@ -46,8 +47,8 @@ class TestFourierForecast(unittest.TestCase):
     def test_basic(self):
         for i in range(self.n_tests):
             print(f'basic tests: {i + 1}')
-            ds, y, _ = create_data(regressors=False)
-            ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True)
+            ds, y, _ = create_data(regressors=False, fourier_order=1)
+            ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True, fourier_order=1)
             ff.fit(ds, y)
             preds = ff.predict(ds)
             np.testing.assert_allclose(y, preds, atol=self.atol, rtol=self.rtol)
@@ -55,8 +56,8 @@ class TestFourierForecast(unittest.TestCase):
     def test_regressors(self):
         for i in range(self.n_tests):
             print(f'regressors tests: {i + 1}')
-            ds, y, r = create_data(regressors=True)
-            ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True)
+            ds, y, r = create_data(regressors=True, fourier_order=1)
+            ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True, fourier_order=1)
             ff.fit(ds, y, regressors=r)
             preds = ff.predict(ds, regressors=r)
             np.testing.assert_allclose(y, preds, atol=self.atol, rtol=self.rtol)
@@ -64,7 +65,7 @@ class TestFourierForecast(unittest.TestCase):
     def test_sample_weight(self):
         for i in range(self.n_tests):
             print(f'sample weight test: {i + 1}')
-            ds, y, _ = create_data(regressors=False)
+            ds, y, _ = create_data(regressors=False, fourier_order=1)
 
             # if apply zero weight to the first x values, then we can multiply them by a random number and it
             # should not impact the prediction against the last (y.size - x) values
@@ -72,8 +73,19 @@ class TestFourierForecast(unittest.TestCase):
             w = np.concatenate([np.zeros(x), np.ones(y.size - x)], axis=0)
             y[: x] *= np.random.rand()
 
-            ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True)
+            ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True, fourier_order=1)
             ff.fit(ds, y, sample_weight=w)
 
             preds = ff.predict(ds)
             np.testing.assert_allclose(y[x:], preds[x:], atol=self.atol, rtol=self.rtol)
+
+    def test_fourier_order(self):
+        for i in range(self.n_tests):
+            print(f'fourier order test: {i + 1}')
+            fourier_order = np.random.choice([3, 4, 5])
+            ds, y, _ = create_data(regressors=False, fourier_order=fourier_order)
+            ff = FourierForecast(monthly_seasonality=True, quarterly_seasonality=True, fourier_order=fourier_order)
+            ff.fit(ds, y)
+            preds = ff.predict(ds)
+            np.testing.assert_allclose(y, preds, atol=self.atol, rtol=self.rtol)
+

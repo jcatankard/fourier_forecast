@@ -1,31 +1,29 @@
 # FourierForecast
-A time-series model that decomposes a daily time-series into seasonality, trend, bias, optional regressors and noise.
+A time-series modelling approach that decomposes a daily time-series into seasonality, trend, bias,
+optional regressors and noise.
  
-- The initial seasonality amplitude and phase are inferred by Fast Fourier Transformation
-- This is then fine-tuned and fitted with the other components using gradient descent
+- Seasonality types & Fourier order are specified
+- Seasonality components, trends, bias and regressors are fit with gradient descent
 - Components can be visualised with plot_components method
 - Numba is used for performance boost
-
-The main purpose of this is to educate myself on Fast Fourier Transformations and gradient descent.
-It is not advised to use this at this point in time.
 
 ### Seasonality:
 - In theory seasonal components can be fitted with less training data than a full season
   - e.g. yearly seasonality can be fitted even when the training data covers just 9 months
-  - however, for best performance, aim to include at least two cycles of the largest seasonal component to be fitted
-  - at this moment, only one wave is fitted per seasonal component which means nuance is lost at a granular level
+    - however, for best performance, aim to include at least two cycles of the largest seasonal component to be fitted
+  - multiple waves per seasonality are fit according to the specified Fourier order
+    - more terms results in better fit but can result in over-fitting
   - fitting frequency by gradient descent does not result in stable outcomes so only amplitude and phase are fitted
-  whilst frequency is determined by pre-determined values:
+  whilst seasonal periods are set by pre-determined values:
      - weekly_seasonality: 7 days
      - monthly_seasonality: 30.43 days
      - quarterly_seasonality: 91.31 days
      - yearly_seasonality: 365.25 days
-  - For multiplicative seasonality, it may be best to log transform your time-series before fitting
+  - for multiplicative seasonality, it may be best to log transform your time-series before fitting
     - where necessary it may also be appropriate to log transform some or all regressors
 
 ### Future updates:
- - higher fourier orders: fit multiple waves per seasonal component to create a more nuanced fit
- - confidence intervals
+ - prediction intervals
  - add deploy to pip into pipeline
 
 ## FourierForecast
@@ -34,6 +32,8 @@ It is not advised to use this at this point in time.
  - monthly_seasonality: bool, default=False
  - quarterly_seasonality: bool, default=False
  - yearly_seasonality: bool, default=True
+ - fourier_order: int, default=1
+   - number of fourier series component for each seasonality type
  - learning_rate: float, default=0.001
  - n_iterations: int, default=100_000
  - tol: float, default=1e-5
@@ -41,7 +41,7 @@ It is not advised to use this at this point in time.
 
 ### Methods
  - fit
-   - ds: NDArray[date] | list[date]
+   - ds: NDArray[date]
      - ordered dates corresponding to each row of the training data
    - y: NDArray[float]
      - daily time-series ordered by date
@@ -50,7 +50,7 @@ It is not advised to use this at this point in time.
    - sample_weight: NDArray[float], default=None
      - individual weights for each sample
  - predict
-   - ds: NDArray[date] | list[date]
+   - ds: NDArray[date]
      - dates corresponding to days to predict
    - regressors: NDArray[float], default=None
      - regressors corresponding to days to predict 
@@ -108,6 +108,24 @@ ff.plot_components()
 ```
 <p float="left">
   <img src="./images/example_plot_components.png" width="100%" />
+</p>
+
+### fourier order example with plot_components()
+```python
+from fourier_forecast.fourier_forecast import FourierForecast
+
+
+dates = ...
+actuals = ...
+
+ff = FourierForecast(fourier_order=5
+                     )
+                     
+ff.fit(dates, actuals)
+ff.plot_components()
+```
+<p float="left">
+  <img src="./images/example_fourier_order.png" width="100%" />
 </p>
 
 ### multiplicative seasonality example

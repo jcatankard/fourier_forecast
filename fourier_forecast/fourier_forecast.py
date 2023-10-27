@@ -4,6 +4,7 @@ from fourier_forecast.waves import sin_wave
 from datetime import date, timedelta
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
+from typing import Optional
 import numpy as np
 
 
@@ -14,10 +15,12 @@ class FourierForecast:
                  monthly_seasonality: bool = False,
                  quarterly_seasonality: bool = False,
                  yearly_seasonality: bool = True,
+                 fourier_order: int = 1,
                  learning_rate: float = 0.001,
                  n_iterations: int = 100_000,
                  tol: float = 1e-05
                  ):
+        self.fourier_order = fourier_order
         self.learning_rate: float = float(learning_rate)
         self.n_iterations: int = int(n_iterations)
         self.tol = float(tol)
@@ -28,45 +31,44 @@ class FourierForecast:
                                         quarterly_seasonality,
                                         yearly_seasonality
                                         ]]
-        self.amplitudes: NDArray[np.float64] = None
-        self.phases: NDArray[np.float64] = None
+        self.amplitudes: Optional[NDArray[np.float64]] = None
+        self.phases: Optional[NDArray[np.float64]] = None
         self.frequencies = 1 / self.time_periods
-        self.trend: float = None
-        self.bias: float = None
+        self.trend: Optional[float] = None
+        self.bias: Optional[float] = None
 
-        self.regressors: NDArray[np.float64] = None
-        self.regressor_weights: NDArray[np.float64] = None
-        self.n_regressors: int = None
+        self.regressors: Optional[NDArray[np.float64]] = None
+        self.regressor_weights: Optional[NDArray[np.float64]] = None
+        self.n_regressors: Optional[int] = None
 
-        self.ds: NDArray[np.int64] = None
-        self.min_date: date = None
-        self.y: NDArray[np.float64] = None
-        self.sample_weight: NDArray[np.float64] = None
-        self.trend_estimate: NDArray[np.float64] = None
+        self.ds: Optional[NDArray[np.int64]] = None
+        self.min_date: Optional[date] = None
+        self.y: Optional[NDArray[np.float64]] = None
+        self.sample_weight: Optional[NDArray[np.float64]] = None
+        self.trend_estimate: Optional[NDArray[np.float64]] = None
 
     @staticmethod
     def _to_numpy(a) -> NDArray[np.float64]:
         return np.asarray(a, dtype=np.float64, order='C')
 
     def _initiate_seasonality_estimates(self):
-        self.amplitudes = np.zeros(self.time_periods.size, dtype=np.float64)
-        self.phases = np.zeros(self.time_periods.size, dtype=np.float64)
-        self.trend_estimate = self.y.copy()
+        n_waves = self.time_periods.size * 2 * self.fourier_order
+        self.amplitudes = np.ones(n_waves, dtype=np.float64)
+        self.phases = np.zeros(n_waves, dtype=np.float64)
+        self.frequencies = np.zeros(n_waves, dtype=np.float64)
         for i, t in enumerate(self.time_periods):
-            if self.y.size > np.ceil(t):
-                size_options = np.arange(np.floor(t).astype(np.int64), self.y.size + 1)
-                div = size_options / t
-                diff = np.absolute(div - div.round(0))
-                size = size_options[diff == diff.min()].max()
-                a, p, f = find_signal(self.trend_estimate[: size], t)
-                self.amplitudes[i] = a
-                self.phases[i] = p
-                self.trend_estimate -= sin_wave(a, p, self.frequencies[i], self.ds)
+            for j in range(self.fourier_order):
+                n = i * self.fourier_order * 2 + j * 2
+                f = (j + 1) / t
+                self.frequencies[n] = f
+                self.frequencies[n + 1] = f
+                self.phases[n] = 0
+                self.phases[n + 1] = np.pi
 
     def _initiate_trend_estimates(self):
-        gradient = (self.trend_estimate[-1] - self.trend_estimate[0]) / self.trend_estimate.size
+        gradient = (self.y[-1] - self.y[0]) / self.y.size
         self.trend = gradient
-        self.bias = (self.trend_estimate - gradient * self.ds).mean()
+        self.bias = (self.y - gradient * self.ds).mean()
 
     def _initiate_regressors(self, regressors: NDArray, size: int, default_width: int) -> NDArray[np.float64]:
         regressors = np.zeros((size, default_width), dtype=np.float64) \
@@ -92,10 +94,10 @@ class FourierForecast:
             self.sample_weight = sample_weight / sample_weight.max()
 
     def fit(self,
-            ds: list[date] | NDArray[date],
+            ds: NDArray[date],
             y: NDArray[np.float64],
-            regressors: NDArray[np.float64] = None,
-            sample_weight: NDArray[np.float64] = None
+            regressors: Optional[NDArray[np.float64]] = None,
+            sample_weight: Optional[NDArray[np.float64]] = None
             ):
         self.y = self._to_numpy(y)
         self._initiate_sample_weight(sample_weight)
@@ -123,7 +125,7 @@ class FourierForecast:
                                    )
         self.bias, self.trend, self.amplitudes, self.phases, self.frequencies, self.regressor_weights = results
 
-    def predict(self, ds: list[date] | NDArray[date], regressors: NDArray[np.float64] = None
+    def predict(self, ds: NDArray[date], regressors: Optional[NDArray[np.float64]] = None
                 ) -> NDArray[np.float64]:
         ds = np.array([(d - self.min_date).days for d in ds], dtype=np.int64)
         regressors = self._initiate_regressors(regressors, ds.size, self.n_regressors)
@@ -138,24 +140,31 @@ class FourierForecast:
                        )
 
     @staticmethod
-    def subplot(ax, ds: NDArray, data: NDArray, label: str, title: str = None):
+    def subplot(ax, ds: NDArray[date], data: NDArray[np.float64], label: str):
         ax.plot(ds, data, label=label)
-        ax.set_title(label if title is None else title)
+        ax.legend()
 
     def plot_components(self):
         ds = np.array([self.min_date + timedelta(days=int(d)) for d in self.ds])
-        fig, ax = plt.subplots(nrows=3, ncols=2)
+        n_rows = 2 + np.ceil(self.time_periods.size / 2).astype(np.int64)
+        fig, ax = plt.subplots(nrows=n_rows, ncols=2)
 
         self.subplot(ax[0, 0], ds, create_bias(self.bias, self.ds), 'bias')
         self.subplot(ax[0, 1], ds, create_trend(self.trend, self.ds), 'trend')
+        self.subplot(ax[1, 0], ds, self.regressors @ self.regressor_weights, 'regressors')
+        self.subplot(ax[1, 1], ds, self.y - self.predict(ds, self.regressors), 'noise')
 
-        for w in range(self.amplitudes.size):
-            s = sin_wave(self.amplitudes[w], self.phases[w], self.frequencies[w], self.ds)
-            self.subplot(ax[1, 0], ds, s, f'seasonality {w + 1}', 'seasonality')
+        for i, t in enumerate(self.time_periods):
+            s = np.zeros_like(ds, np.float64)
+            for j in range(self.fourier_order):
+                n = i * self.fourier_order * 2 + j * 2
+                s += sin_wave(self.amplitudes[n], self.phases[n], self.frequencies[n], self.ds)
+            row = 2 + i // 2
+            col = i % 2
+            self.subplot(ax[row, col], ds, s, f'seasonality: periods={t}')
 
-        self.subplot(ax[1, 1], ds, self.regressors @ self.regressor_weights, 'regressors')
-        self.subplot(ax[2, 0], ds, self.y - self.predict(ds, self.regressors), 'noise')
-        ax[2, 1].axis('off')
+        if self.time_periods.size % 2 == 1:
+            ax[n_rows - 1, 1].axis('off')
         plt.show()
 
     def print(self):
@@ -166,17 +175,3 @@ class FourierForecast:
         print('trend:', np.round(self.trend, 5))
         print('bias:', np.round(self.bias, 5))
         print('--------------------')
-
-
-def find_signal(a: NDArray, periods: float):
-    """returns the amplitude, phase and freq of a wave for a given (non-integer) no. periods"""
-    yhat = np.fft.rfft(a)
-    # power_spectral_density = np.abs(yhat) / a.size
-
-    frequencies = np.fft.rfftfreq(a.size, d=1 / periods)
-    amplitudes = np.abs(yhat) * 2 / a.size
-    phases = np.arctan2(yhat.imag, yhat.real) + np.pi / 2
-
-    f = np.absolute(frequencies - 1)
-    i = np.where(f == f.min())[0][0]
-    return amplitudes[i], phases[i], frequencies[i] / periods
