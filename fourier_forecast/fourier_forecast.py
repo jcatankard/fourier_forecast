@@ -11,29 +11,28 @@ import numpy as np
 class FourierForecast:
 
     def __init__(self,
-                 weekly_seasonality: bool = True,
-                 monthly_seasonality: bool = False,
-                 quarterly_seasonality: bool = False,
-                 yearly_seasonality: bool = True,
-                 fourier_order: int = 1,
+                 weekly_seasonality_terms: int = 3,
+                 monthly_seasonality_terms: int = 0,
+                 quarterly_seasonality_terms: int = 0,
+                 yearly_seasonality_terms: int = 10,
                  learning_rate: float = 0.001,
                  n_iterations: int = 100_000,
                  tol: float = 1e-05
                  ):
-        self.fourier_order = fourier_order
         self.learning_rate: float = float(learning_rate)
         self.n_iterations: int = int(n_iterations)
         self.tol = float(tol)
 
-        self.time_periods = np.array([7, 30.43, 91.31, 365.25]
-                                     )[[weekly_seasonality,
-                                        monthly_seasonality,
-                                        quarterly_seasonality,
-                                        yearly_seasonality
-                                        ]]
+        seasonality_terms = {
+            7.: weekly_seasonality_terms,
+            30.43: monthly_seasonality_terms,
+            91.31: quarterly_seasonality_terms,
+            365.25: yearly_seasonality_terms
+        }
+        self.seasonality_terms = {k: v for k, v in seasonality_terms.items() if v > 0}
         self.amplitudes: Optional[NDArray[np.float64]] = None
         self.phases: Optional[NDArray[np.float64]] = None
-        self.frequencies = 1 / self.time_periods
+        self.frequencies: Optional[NDArray[np.float64]] = None
         self.trend: Optional[float] = None
         self.bias: Optional[float] = None
 
@@ -52,18 +51,19 @@ class FourierForecast:
         return np.asarray(a, dtype=np.float64, order='C')
 
     def _initiate_seasonality_estimates(self):
-        n_waves = self.time_periods.size * 2 * self.fourier_order
+        n_waves = 2 * sum(self.seasonality_terms.values())
         self.amplitudes = np.ones(n_waves, dtype=np.float64)
         self.phases = np.zeros(n_waves, dtype=np.float64)
         self.frequencies = np.zeros(n_waves, dtype=np.float64)
-        for i, t in enumerate(self.time_periods):
-            for j in range(self.fourier_order):
-                n = i * self.fourier_order * 2 + j * 2
-                f = (j + 1) / t
-                self.frequencies[n] = f
-                self.frequencies[n + 1] = f
-                self.phases[n] = 0
-                self.phases[n + 1] = np.pi
+        count = 0
+        for periods, terms in self.seasonality_terms.items():
+            for j in range(terms):
+                f = (j + 1) / periods
+                self.frequencies[count] = f
+                self.frequencies[count + 1] = f
+                self.phases[count] = 0
+                self.phases[count + 1] = np.pi
+                count += 2
 
     def _initiate_trend_estimates(self):
         gradient = (self.y[-1] - self.y[0]) / self.y.size
@@ -146,7 +146,8 @@ class FourierForecast:
 
     def plot_components(self):
         ds = np.array([self.min_date + timedelta(days=int(d)) for d in self.ds])
-        n_rows = 2 + np.ceil(self.time_periods.size / 2).astype(np.int64)
+        n_seasonalities = len(self.seasonality_terms)
+        n_rows = 2 + np.ceil(n_seasonalities / 2).astype(np.int64)
         fig, ax = plt.subplots(nrows=n_rows, ncols=2)
 
         self.subplot(ax[0, 0], ds, create_bias(self.bias, self.ds), 'bias')
@@ -154,16 +155,18 @@ class FourierForecast:
         self.subplot(ax[1, 0], ds, self.regressors @ self.regressor_weights, 'regressors')
         self.subplot(ax[1, 1], ds, self.y - self.predict(ds, self.regressors), 'noise')
 
-        for i, t in enumerate(self.time_periods):
+        n = 0
+        for i, (periods, terms) in enumerate(self.seasonality_terms.items()):
             s = np.zeros_like(ds, np.float64)
-            for j in range(self.fourier_order):
-                n = i * self.fourier_order * 2 + j * 2
+            for j in range(terms):
                 s += sin_wave(self.amplitudes[n], self.phases[n], self.frequencies[n], self.ds)
+                s += sin_wave(self.amplitudes[n + 1], self.phases[n + 1], self.frequencies[n + 1], self.ds)
+                n += 2
             row = 2 + i // 2
             col = i % 2
-            self.subplot(ax[row, col], ds, s, f'seasonality: periods={t}')
+            self.subplot(ax[row, col], ds, s, f'seasonality: periods={periods}')
 
-        if self.time_periods.size % 2 == 1:
+        if n_seasonalities % 2 == 1:
             ax[n_rows - 1, 1].axis('off')
         plt.show()
 

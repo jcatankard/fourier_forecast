@@ -2,7 +2,7 @@
 A time-series modelling approach that decomposes a daily time-series into seasonality, trend, bias,
 optional regressors and noise.
  
-- Seasonality types & Fourier order are specified
+- Seasonality types & Fourier terms are specified
 - Seasonality components, trends, bias and regressors are fit with gradient descent
 - Components can be visualised with plot_components method
 - Numba is used for performance boost
@@ -15,25 +15,27 @@ optional regressors and noise.
     - more terms results in better fit but can result in over-fitting
   - fitting frequency by gradient descent does not result in stable outcomes so only amplitude and phase are fitted
   whilst seasonal periods are set by pre-determined values:
-     - weekly_seasonality: 7 days
-     - monthly_seasonality: 30.43 days
-     - quarterly_seasonality: 91.31 days
-     - yearly_seasonality: 365.25 days
+     - weekly seasonality: 7 days
+     - monthly seasonality: 30.43 days
+     - quarterly seasonality: 91.31 days
+     - yearly seasonality: 365.25 days
   - for multiplicative seasonality, it may be best to log transform your time-series before fitting
     - where necessary it may also be appropriate to log transform some or all regressors
 
 ### Future updates:
  - prediction intervals
+ - native handling of multiplicative seasonality
+ - flexible trend
+ - better default amplitude estimations
  - add deploy to pip into pipeline
 
 ## FourierForecast
 ### Parameters
- - weekly_seasonality: bool, default=True
- - monthly_seasonality: bool, default=False
- - quarterly_seasonality: bool, default=False
- - yearly_seasonality: bool, default=True
- - fourier_order: int, default=1
-   - number of fourier series component for each seasonality type
+ - weekly_seasonality_terms: int, default=3
+ - monthly_seasonality_terms: int, default=0
+ - quarterly_seasonality_terms: int, default=0
+ - yearly_seasonality_terms: int, default=10
+   - number of fourier series components for each seasonality type
  - learning_rate: float, default=0.001
  - n_iterations: int, default=100_000
  - tol: float, default=1e-5
@@ -99,8 +101,10 @@ dates = ...
 actuals = ...
 regressors = ...
 
-ff = FourierForecast(monthly_seasonality=True,
-                     quarterly_seasonality=True
+ff = FourierForecast(weekly_seasonality_terms=1,
+                     monthly_seasonality_terms=1,
+                     quarterly_seasonality_terms=1,
+                     yearly_seasonality_terms=1
                      )
                      
 ff.fit(dates, actuals, regressors)
@@ -118,8 +122,7 @@ from fourier_forecast.fourier_forecast import FourierForecast
 dates = ...
 actuals = ...
 
-ff = FourierForecast(fourier_order=5
-                     )
+ff = FourierForecast()
                      
 ff.fit(dates, actuals)
 ff.plot_components()
