@@ -27,7 +27,7 @@ def create_data(regressors: bool,
     regressor_x = make_regressors(t, regressors)
 
     y_clean = np.array([
-        np.random.normal(0, 1) * t,  # trend
+        np.random.normal(0, .1) * t,  # trend
         np.random.choice([-1, 1]) * np.random.randint(1, 100) * np.ones(size),  # bias
         np.sum(regressor_x, axis=1)  # regressors
     ]).sum(axis=0)

@@ -157,10 +157,12 @@ class FourierForecast:
 
         n = 0
         for i, (periods, terms) in enumerate(self.seasonality_terms.items()):
+            n_to_plot = np.ceil(periods).astype(np.int64)
+            ds = np.arange(n_to_plot)
             s = np.zeros_like(ds, np.float64)
             for j in range(terms):
-                s += sin_wave(self.amplitudes[n], self.phases[n], self.frequencies[n], self.ds)
-                s += sin_wave(self.amplitudes[n + 1], self.phases[n + 1], self.frequencies[n + 1], self.ds)
+                s += sin_wave(self.amplitudes[n], self.phases[n], self.frequencies[n], ds)
+                s += sin_wave(self.amplitudes[n + 1], self.phases[n + 1], self.frequencies[n + 1], ds)
                 n += 2
             row = 2 + i // 2
             col = i % 2
@@ -169,12 +171,3 @@ class FourierForecast:
         if n_seasonalities % 2 == 1:
             ax[n_rows - 1, 1].axis('off')
         plt.show()
-
-    def print(self):
-        print('--------------------')
-        print('periods:', 1 / self.frequencies)
-        print('amplitudes:', self.amplitudes.round(3))
-        print('phases:', self.phases.round(3))
-        print('trend:', np.round(self.trend, 5))
-        print('bias:', np.round(self.bias, 5))
-        print('--------------------')
