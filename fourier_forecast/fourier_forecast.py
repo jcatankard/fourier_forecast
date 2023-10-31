@@ -44,7 +44,6 @@ class FourierForecast:
         self.min_date: Optional[date] = None
         self.y: Optional[NDArray[np.float64]] = None
         self.sample_weight: Optional[NDArray[np.float64]] = None
-        self.trend_estimate: Optional[NDArray[np.float64]] = None
 
     @staticmethod
     def _to_numpy(a) -> NDArray[np.float64]:
@@ -66,9 +65,11 @@ class FourierForecast:
                 count += 2
 
     def _initiate_trend_estimates(self):
-        gradient = (self.y[-1] - self.y[0]) / self.y.size
-        self.trend = gradient
-        self.bias = (self.y - gradient * self.ds).mean()
+        x = np.concatenate((np.ones((self.y.size, 1), dtype=np.float64),
+                            np.arange(self.y.size, dtype=np.float64).reshape(-1, 1)
+                            ), axis=1
+                           )
+        self.bias, self.trend = np.linalg.inv(x.T @ x) @ x.T @ self.y
 
     def _initiate_regressors(self, regressors: NDArray, size: int, default_width: int) -> NDArray[np.float64]:
         regressors = np.zeros((size, default_width), dtype=np.float64) \
@@ -105,8 +106,8 @@ class FourierForecast:
         self.min_date = min(ds)
         self.ds = np.array([(d - self.min_date).days for d in ds], dtype=np.int64)
 
-        self._initiate_seasonality_estimates()
         self._initiate_trend_estimates()
+        self._initiate_seasonality_estimates()
         self.regressors = self._initiate_regressors(regressors, y.size, 0)
 
         results = gradient_descent(self.ds,
