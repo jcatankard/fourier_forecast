@@ -1,4 +1,5 @@
 from fourier_forecast.fourier_forecast import FourierForecast
+from statsforecast.models import AutoARIMA
 from holidays import country_holidays
 from datetime import date, timedelta
 from numpy.typing import NDArray
@@ -23,10 +24,8 @@ def find_holidays_pdf(markets: list[str], start_date: date, end_date: date) -> p
     return df.assign(IS_HOLIDAY=df.apply(lambda z: z['DATE'] in mh[z['MARKET']], axis=1))
 
 
-def print_mde(preds: NDArray, actuals: NDArray):
-    print('----------------')
-    print('MAPE:', np.abs(preds / actuals - 1).mean().round(3))
-    print('----------------')
+def calculate_mape(preds: NDArray, actuals: NDArray) -> float:
+    return np.abs(preds / actuals - 1).mean()
 
 
 def plot_results(test_dates: NDArray, actuals: NDArray, preds: NDArray):
@@ -48,35 +47,57 @@ if __name__ == '__main__':
     df = df[['ds', 'y']]
     hols = find_holidays_pdf(['US'], df['ds'].min(), df['ds'].max())[['IS_HOLIDAY']].values
 
-    train_start, train_end = date(2016, 1, 1), date(2017, 12, 31)
-    train_index = df[(df['ds'] >= train_start) & (df['ds'] <= train_end)].index
+    train_years = 2
+    first_year, last_year = 2016, 2018
+    ff_results = np.zeros(last_year - first_year + 1, dtype=np.float64)
+    prophet_results = np.zeros(last_year - first_year + 1, dtype=np.float64)
+    aa_results = np.zeros(last_year - first_year + 1, dtype=np.float64)
+    for i, test_year in enumerate(range(first_year, last_year + 1)):
 
-    test_start = date(2018, 1, 1)
-    test_index = df[(df['ds'] >= test_start)].index
+        train_dates = (date(test_year - train_years, 1, 1), date(test_year - 1, 12, 31))
+        test_dates = (date(test_year, 1, 1), date(test_year, 12, 31))
 
-    train_df = df[df.index.isin(train_index)]
-    test_df = df[df.index.isin(test_index)]
-    train_hols = hols[train_index]
-    test_hols = hols[test_index]
+        train_index = df[(df['ds'] >= train_dates[0]) & (df['ds'] <= train_dates[1])].index
+        test_index = df[(df['ds'] >= test_dates[0]) & (df['ds'] <= test_dates[1])].index
 
-    ff = FourierForecast(weekly_seasonality_terms=3, yearly_seasonality_terms=10)
-    multiplicative = True
-    y = np.log(train_df['y'].values) if multiplicative else train_df['y'].values
-    ff.fit(train_df['ds'].values, y, regressors=train_hols)
+        train_df = df[df.index.isin(train_index)]
+        test_df = df[df.index.isin(test_index)]
+        train_hols = hols[train_index]
+        test_hols = hols[test_index]
 
-    preds = ff.predict(ds=test_df['ds'].values, regressors=test_hols)
-    preds = np.exp(preds) if multiplicative else preds
+        # FourierForecast ##############
+        ff = FourierForecast(weekly_seasonality_terms=3, yearly_seasonality_terms=10)
+        multiplicative = True
+        y = np.log(train_df['y'].values) if multiplicative else train_df['y'].values
+        ff.fit(train_df['ds'].values, y, regressors=train_hols)
 
-    ff.plot_components()
-    print_mde(preds, test_df['y'].values)
-    plot_results(test_df['ds'].values, test_df['y'].values, preds)
+        preds = ff.predict(ds=test_df['ds'].values, regressors=test_hols)
+        preds = np.exp(preds) if multiplicative else preds
 
-    m = Prophet(seasonality_mode='multiplicative')
-    m.add_country_holidays(country_name='US')
-    m.fit(train_df)
+        # ff.plot_components()
+        ff_results[i] = calculate_mape(preds, test_df['y'].values)
+        # plot_results(test_df['ds'].values, test_df['y'].values, preds)
 
-    future_df = m.make_future_dataframe(periods=test_index.size).tail(test_index.size)
-    pred_df = m.predict(future_df)
+        # Prophet ##############
+        m = Prophet(seasonality_mode='multiplicative')
+        m.add_country_holidays(country_name='US')
+        m.fit(train_df)
 
-    print_mde(pred_df['yhat'].values, test_df['y'].values)
-    plot_results(test_df['ds'].values, test_df['y'].values, pred_df['yhat'].values)
+        future_df = m.make_future_dataframe(periods=test_index.size).tail(test_index.size)
+        pred_df = m.predict(future_df)
+
+        prophet_results[i] = calculate_mape(pred_df['yhat'].values, test_df['y'].values)
+        # plot_results(test_df['ds'].values, test_df['y'].values, pred_df['yhat'].values)
+
+        # AutoArima #############
+        aa = AutoARIMA(season_length=7)
+        aa.fit(train_df['y'].values, train_hols.astype(np.float64))
+        aa_preds = aa.predict((test_dates[1] - test_dates[0]).days + 1, test_hols.astype(np.float64))['mean']
+        aa_results[i] = calculate_mape(aa_preds, test_df['y'].values)
+
+    print('FourierForecast:', ff_results)
+    print('FourierForecast:', ff_results.mean().round(3))
+    print('Prophet:', prophet_results)
+    print('Prophet:', prophet_results.mean().round(3))
+    print('AutoArima:', aa_results)
+    print('AutoArima:', aa_results.mean().round(3))
