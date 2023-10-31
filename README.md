@@ -7,6 +7,8 @@ optional regressors and noise.
 - Components can be visualised with plot_components method
 - Numba is used for performance boost
 
+[Medium blog post](https://medium.com/@jcatankard_76170/forecasting-with-fourier-series-8196721e7a3a)
+
 ### Seasonality:
 - In theory seasonal components can be fitted with less training data than a full season
   - e.g. yearly seasonality can be fitted even when the training data covers just 9 months
