@@ -51,9 +51,10 @@ class FourierForecast:
 
     def _initiate_seasonality_estimates(self):
         n_waves = 2 * sum(self.seasonality_terms.values())
-        self.amplitudes = np.ones(n_waves, dtype=np.float64)
+        self.amplitudes = np.zeros(n_waves, dtype=np.float64)
         self.phases = np.zeros(n_waves, dtype=np.float64)
         self.frequencies = np.zeros(n_waves, dtype=np.float64)
+        y_detrend = self.y - (self.ds * self.trend + self.bias)
         count = 0
         for periods, terms in self.seasonality_terms.items():
             for j in range(terms):
@@ -62,6 +63,11 @@ class FourierForecast:
                 self.frequencies[count + 1] = f
                 self.phases[count] = 0
                 self.phases[count + 1] = np.pi
+
+                windows = np.lib.stride_tricks.sliding_window_view(y_detrend, int(1 / f))
+                amp_int = (windows.max(axis=1) - windows.min(axis=1)).mean() / 2
+                self.amplitudes[count] = amp_int / 2
+                self.amplitudes[count + 1] = amp_int / 2
                 count += 2
 
     def _initiate_trend_estimates(self):

@@ -27,7 +27,6 @@ optional regressors and noise.
 ### Future updates:
  - prediction intervals
  - native handling of multiplicative seasonality
- - better default amplitude estimations
  - add deploy to pip into pipeline
 
 ## FourierForecast
