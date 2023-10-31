@@ -25,9 +25,7 @@ optional regressors and noise.
 ### Future updates:
  - prediction intervals
  - native handling of multiplicative seasonality
- - add optional autoregressive component with walkforward predictions
- - flexible trend
- - better default amplitude estimations
+ - better default amplitude & trend estimations
  - add deploy to pip into pipeline
 
 ## FourierForecast
