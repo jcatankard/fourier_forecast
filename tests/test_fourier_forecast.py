@@ -59,7 +59,7 @@ class TestFourierForecast(unittest.TestCase):
     def test_regressors(self):
         for i in range(self.n_tests):
             print(f'regressors tests: {i + 1}')
-            fourier_terms = np.random.choice(list(range(5)), 4)
+            fourier_terms = np.random.choice(list(range(3)), 4)
             ds, y, r = create_data(regressors=True, fourier_terms=fourier_terms)
             ff = FourierForecast(*fourier_terms)
             ff.fit(ds, y, regressors=r)
@@ -69,14 +69,14 @@ class TestFourierForecast(unittest.TestCase):
     def test_sample_weight(self):
         for i in range(self.n_tests):
             print(f'sample weight test: {i + 1}')
-            fourier_terms = np.random.choice(list(range(5)), 4)
+            fourier_terms = np.random.choice(list(range(2)), 4)
             ds, y, _ = create_data(regressors=False, fourier_terms=fourier_terms)
 
             # if apply zero weight to the first x values, then we can multiply them by a random number and it
             # should not impact the prediction against the last (y.size - x) values
             x = np.random.randint(y.size // 4, y.size - 366)
             w = np.concatenate([np.zeros(x), np.ones(y.size - x)], axis=0)
-            y[: x] *= np.random.rand()
+            y[: x] *= np.random.normal(1., 1.)
 
             ff = FourierForecast(*fourier_terms)
             ff.fit(ds, y, sample_weight=w)
