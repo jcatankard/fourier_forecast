@@ -50,27 +50,25 @@ class TestFourierForecast(unittest.TestCase):
         for i in range(self.n_tests):
             print(f'basic tests: {i + 1}')
             fourier_terms = np.random.choice(list(range(5)), 4)
-            ds, y, _ = create_data(regressors=False, fourier_terms=fourier_terms)
+            _, y, _ = create_data(regressors=False, fourier_terms=fourier_terms)
             ff = FourierForecast(*fourier_terms)
-            ff.fit(ds, y)
-            preds = ff.predict(ds)
-            np.testing.assert_allclose(y, preds, atol=self.atol, rtol=self.rtol)
+            ff.fit(y)
+            np.testing.assert_allclose(y, ff.fitted(), atol=self.atol, rtol=self.rtol)
 
     def test_regressors(self):
         for i in range(self.n_tests):
             print(f'regressors tests: {i + 1}')
             fourier_terms = np.random.choice(list(range(3)), 4)
-            ds, y, r = create_data(regressors=True, fourier_terms=fourier_terms)
+            _, y, r = create_data(regressors=True, fourier_terms=fourier_terms)
             ff = FourierForecast(*fourier_terms)
-            ff.fit(ds, y, regressors=r)
-            preds = ff.predict(ds, regressors=r)
-            np.testing.assert_allclose(y, preds, atol=self.atol, rtol=self.rtol)
+            ff.fit(y, regressors=r)
+            np.testing.assert_allclose(y, ff.fitted(), atol=self.atol, rtol=self.rtol)
 
     def test_sample_weight(self):
         for i in range(self.n_tests):
             print(f'sample weight test: {i + 1}')
             fourier_terms = np.random.choice(list(range(2)), 4)
-            ds, y, _ = create_data(regressors=False, fourier_terms=fourier_terms)
+            _, y, _ = create_data(regressors=False, fourier_terms=fourier_terms)
 
             # if apply zero weight to the first x values, then we can multiply them by a random number and it
             # should not impact the prediction against the last (y.size - x) values
@@ -79,7 +77,5 @@ class TestFourierForecast(unittest.TestCase):
             y[: x] *= np.random.normal(1., 1.)
 
             ff = FourierForecast(*fourier_terms)
-            ff.fit(ds, y, sample_weight=w)
-
-            preds = ff.predict(ds)
-            np.testing.assert_allclose(y[x:], preds[x:], atol=self.atol, rtol=self.rtol)
+            ff.fit(y, sample_weight=w)
+            np.testing.assert_allclose(y[x:], ff.fitted()[x:], atol=self.atol, rtol=self.rtol)

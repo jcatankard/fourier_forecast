@@ -15,7 +15,8 @@ def create_trend(trend: float, ds: NDArray[np.int64]) -> NDArray[np.float64]:
 
 
 @njit(float64[::1](
-    int64[::1],
+    int64,
+    int64,
     float64,
     float64,
     float64[::1],
@@ -24,7 +25,8 @@ def create_trend(trend: float, ds: NDArray[np.int64]) -> NDArray[np.float64]:
     float64[:, ::1],
     float64[::1]
 ), cache=True)
-def predict(ds: NDArray[np.int64],
+def predict(start: int,
+            horizon: int,
             bias: float,
             trend: float,
             amplitudes: NDArray[np.float64],
@@ -33,6 +35,7 @@ def predict(ds: NDArray[np.int64],
             regressors: NDArray[np.float64],
             regressor_weights: NDArray[np.float64]
             ) -> NDArray[np.float64]:
+    ds = np.arange(start, start + horizon, dtype=np.int64)
     # add bias
     y_pred = create_bias(bias, ds)
     # add trend

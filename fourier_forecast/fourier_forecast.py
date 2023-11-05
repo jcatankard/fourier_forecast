@@ -1,7 +1,6 @@
 from fourier_forecast.predict import predict, create_trend, create_bias
 from fourier_forecast.gradient_descent import gradient_descent
 from fourier_forecast.waves import sin_wave
-from datetime import date, timedelta
 from numpy.typing import NDArray
 import matplotlib.pyplot as plt
 from typing import Optional
@@ -41,7 +40,7 @@ class FourierForecast:
         self.n_regressors: Optional[int] = None
 
         self.ds: Optional[NDArray[np.int64]] = None
-        self.min_date: Optional[date] = None
+        self.pred_start: Optional[int] = None
         self.y: Optional[NDArray[np.float64]] = None
         self.sample_weight: Optional[NDArray[np.float64]] = None
 
@@ -66,8 +65,8 @@ class FourierForecast:
 
                 windows = np.lib.stride_tricks.sliding_window_view(y_detrend, int(1 / f))
                 amp_int = (windows.max(axis=1) - windows.min(axis=1)).mean() / 2
-                self.amplitudes[count] = amp_int / 2
-                self.amplitudes[count + 1] = amp_int / 2
+                self.amplitudes[count] = 1  # amp_int / 2
+                self.amplitudes[count + 1] = 1  # amp_int / 2
                 count += 2
 
     def _initiate_trend_estimates(self):
@@ -77,7 +76,7 @@ class FourierForecast:
                            )
         self.bias, self.trend = np.linalg.inv(x.T @ x) @ x.T @ self.y
 
-    def _initiate_regressors(self, regressors: NDArray, size: int, default_width: int) -> NDArray[np.float64]:
+    def _initiate_regressors(self, regressors: Optional[NDArray], size: int, default_width: int) -> NDArray[np.float64]:
         regressors = np.zeros((size, default_width), dtype=np.float64) \
             if regressors is None else self._to_numpy(regressors)
 
@@ -87,7 +86,7 @@ class FourierForecast:
 
         return regressors
 
-    def _initiate_sample_weight(self, sample_weight: NDArray[np.float64]):
+    def _initiate_sample_weight(self, sample_weight: Optional[NDArray[np.float64]]):
         if sample_weight is None:
             self.sample_weight = np.ones_like(self.y, dtype=np.float64)
         elif min(sample_weight) < 0:
@@ -101,7 +100,6 @@ class FourierForecast:
             self.sample_weight = sample_weight / sample_weight.max()
 
     def fit(self,
-            ds: NDArray[date],
             y: NDArray[np.float64],
             regressors: Optional[NDArray[np.float64]] = None,
             sample_weight: Optional[NDArray[np.float64]] = None
@@ -109,15 +107,14 @@ class FourierForecast:
         self.y = self._to_numpy(y)
         self._initiate_sample_weight(sample_weight)
 
-        self.min_date = min(ds)
-        self.ds = np.array([(d - self.min_date).days for d in ds], dtype=np.int64)
+        self.pred_start = y.size
+        self.ds = np.arange(0, y.size, dtype=np.int64)
 
         self._initiate_trend_estimates()
         self._initiate_seasonality_estimates()
         self.regressors = self._initiate_regressors(regressors, y.size, 0)
 
-        results = gradient_descent(self.ds,
-                                   self.bias,
+        results = gradient_descent(self.bias,
                                    self.trend,
                                    self.amplitudes,
                                    self.phases,
@@ -132,11 +129,22 @@ class FourierForecast:
                                    )
         self.bias, self.trend, self.amplitudes, self.phases, self.frequencies, self.regressor_weights = results
 
-    def predict(self, ds: NDArray[date], regressors: Optional[NDArray[np.float64]] = None
-                ) -> NDArray[np.float64]:
-        ds = np.array([(d - self.min_date).days for d in ds], dtype=np.int64)
-        regressors = self._initiate_regressors(regressors, ds.size, self.n_regressors)
-        return predict(ds,
+    def fitted(self) -> NDArray[np.float64]:
+        return predict(0,
+                       self.y.size,
+                       self.bias,
+                       self.trend,
+                       self.amplitudes,
+                       self.phases,
+                       self.frequencies,
+                       self.regressors,
+                       self.regressor_weights
+                       )
+
+    def predict(self, h: int = 1, regressors: Optional[NDArray[np.float64]] = None) -> NDArray[np.float64]:
+        regressors = self._initiate_regressors(regressors, h, self.n_regressors)
+        return predict(self.pred_start,
+                       h,
                        self.bias,
                        self.trend,
                        self.amplitudes,
@@ -147,20 +155,19 @@ class FourierForecast:
                        )
 
     @staticmethod
-    def subplot(ax, ds: NDArray[date], data: NDArray[np.float64], label: str):
+    def subplot(ax, ds: NDArray[np.int64], data: NDArray[np.float64], label: str):
         ax.plot(ds, data, label=label)
         ax.legend()
 
     def plot_components(self):
-        ds = np.array([self.min_date + timedelta(days=int(d)) for d in self.ds])
         n_seasonalities = len(self.seasonality_terms)
         n_rows = 2 + np.ceil(n_seasonalities / 2).astype(np.int64)
         fig, ax = plt.subplots(nrows=n_rows, ncols=2)
 
-        self.subplot(ax[0, 0], ds, create_bias(self.bias, self.ds), 'bias')
-        self.subplot(ax[0, 1], ds, create_trend(self.trend, self.ds), 'trend')
-        self.subplot(ax[1, 0], ds, self.regressors @ self.regressor_weights, 'regressors')
-        self.subplot(ax[1, 1], ds, self.y - self.predict(ds, self.regressors), 'noise')
+        self.subplot(ax[0, 0], self.ds, create_bias(self.bias, self.ds), 'bias')
+        self.subplot(ax[0, 1], self.ds, create_trend(self.trend, self.ds), 'trend')
+        self.subplot(ax[1, 0], self.ds, self.regressors @ self.regressor_weights, 'regressors')
+        self.subplot(ax[1, 1], self.ds, self.y - self.fitted(), 'noise')
 
         n = 0
         for i, (periods, terms) in enumerate(self.seasonality_terms.items()):

@@ -26,7 +26,6 @@ optional regressors and noise.
 
 ### Future updates:
  - prediction intervals
- - native handling of multiplicative seasonality
  - add deploy to pip into pipeline
 
 ## FourierForecast
@@ -43,8 +42,6 @@ optional regressors and noise.
 
 ### Methods
  - fit
-   - ds: NDArray[date]
-     - ordered dates corresponding to each row of the training data
    - y: NDArray[float]
      - daily time-series ordered by date
    - regressors: NDArray[float], default=None
@@ -52,14 +49,16 @@ optional regressors and noise.
    - sample_weight: NDArray[float], default=None
      - individual weights for each sample
  - predict
-   - ds: NDArray[date]
-     - dates corresponding to days to predict
+   - h: int, default=1
+     - number of horizons to predict
    - regressors: NDArray[float], default=None
      - regressors corresponding to days to predict 
      - if regressors are present during fitting, these must have the same number of features
      - if None is passed, then all values will assume to be 0.
  - plot_components
    - plots bias, trends, seasonality, regressors and noise
+ - fitted
+   - returns fitted values
 
 ## Examples
 ### fit and predict example
@@ -73,18 +72,19 @@ actuals = ...
 
 train_test_split = .8
 n_train = int(len(dates) * train_test_split)
+n_predict = len(dates) - n_train
 
 train_dates = dates[: n_train]
 train_actuals = actuals[: n_train]
 
 ff = FourierForecast()
                      
-ff.fit(train_dates, train_actuals, regressors=None)
-preds = ff.predict(ds=dates, regressors=None)
+ff.fit(train_actuals)
+preds = ff.predict(h=n_predict)
 
 plt.plot(dates, actuals, label='actuals')
 plt.plot(train_dates, preds[: n_train], label='train')
-plt.plot(dates[n_train: ], preds[n_train: ], label='preds')
+plt.plot(dates[n_train: ], preds, label='preds')
 plt.legend()
 plt.show()
 ```
@@ -97,7 +97,6 @@ plt.show()
 from fourier_forecast.fourier_forecast import FourierForecast
 
 
-dates = ...
 actuals = ...
 regressors = ...
 
@@ -107,7 +106,7 @@ ff = FourierForecast(weekly_seasonality_terms=1,
                      yearly_seasonality_terms=1
                      )
                      
-ff.fit(dates, actuals, regressors)
+ff.fit(actuals, regressors)
 ff.plot_components()
 ```
 <p float="left">
@@ -119,12 +118,14 @@ ff.plot_components()
 from fourier_forecast.fourier_forecast import FourierForecast
 
 
-dates = ...
 actuals = ...
 
-ff = FourierForecast()
-                     
-ff.fit(dates, actuals)
+ff = FourierForecast(weekly_seasonality_terms=3,
+                     monthly_seasonality_terms=0,
+                     quarterly_seasonality_terms=0,
+                     yearly_seasonality_terms=10
+                     )      
+ff.fit(actuals)
 ff.plot_components()
 ```
 <p float="left">
@@ -143,17 +144,15 @@ regressors = ...
 
 train_test_split = .8
 n_train = int(len(dates) * train_test_split)
+n_predict = len(dates) - n_train
 
 ff = FourierForecast() 
-ff.fit(ds=dates[: n_train],
-       y=np.log(actuals[: n_train]),
+ff.fit(y=np.log(actuals[: n_train]),
        regressors=regressors[: n_train]
        )
 preds = np.exp(
-    ff.predict(ds=dates[n_train: ],
-               regressors=regressors[n_train: ]
-               )
+    ff.predict(h=n_predict, regressors=regressors[n_train: ])
 )
-mape = np.absolute(preds / actuals[n_train: ] - 1) / preds.size
+mape = np.absolute(preds / actuals[n_train: ] - 1) / n_predict
 print(mape)
 ```

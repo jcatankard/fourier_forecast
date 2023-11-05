@@ -69,7 +69,6 @@ def update_bias(bias: float, cost_derivative: NDArray[np.float64], learning_rate
 
 
 @njit(types.Tuple((float64, float64, float64[::1], float64[::1], float64[::1], float64[::1]))(
-    int64[::1],
     float64,
     float64,
     float64[::1],
@@ -83,8 +82,7 @@ def update_bias(bias: float, cost_derivative: NDArray[np.float64], learning_rate
     float64,
     float64[::1],
 ), cache=True)
-def gradient_descent(ds: NDArray[np.int64],
-                     bias: float,
+def gradient_descent(bias: float,
                      trend: float,
                      amps: NDArray[np.float64],
                      phases: NDArray[np.float64],
@@ -97,9 +95,11 @@ def gradient_descent(ds: NDArray[np.int64],
                      tol: float,
                      sample_weight: NDArray[np.float64]
                      ):
+    ds = np.arange(0, y.size, dtype=np.int64)
     params = np.concatenate((np.array([bias, trend]), amps, phases, regressor_weights), axis=0)
     for _ in range(n_iterations):
-        y_pred = predict(ds,
+        y_pred = predict(0,
+                         y.size,
                          bias,
                          trend,
                          amps,
