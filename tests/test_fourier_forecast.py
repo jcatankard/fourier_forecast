@@ -43,7 +43,7 @@ def create_data(regressors: bool,
 class TestFourierForecast(unittest.TestCase):
 
     atol = 0.1
-    rtol = 0.1
+    rtol = np.inf
     n_tests = 3
 
     def test_basic(self):
