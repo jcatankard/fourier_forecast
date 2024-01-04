@@ -3,6 +3,7 @@ from numpy.typing import NDArray
 import plotly.graph_objs as go
 from typing import Optional
 import numpy as np
+import warnings
 
 
 DAYS_IN_WEEK = 7.
@@ -17,7 +18,8 @@ class FourierForecast:
                  weekly_seasonality_terms: int = 3,
                  monthly_seasonality_terms: int = 0,
                  quarterly_seasonality_terms: int = 0,
-                 yearly_seasonality_terms: int = 10
+                 yearly_seasonality_terms: int = 10,
+                 log_y: bool = False
                  ):
 
         seasonality_terms = {
@@ -28,6 +30,8 @@ class FourierForecast:
         }
         self.seasonality_terms = {k: v for k, v in seasonality_terms.items() if v > 0}
         self.n_waves = 2 * sum(self.seasonality_terms.values())
+
+        self.log_y = log_y
 
         self.regressors: Optional[NDArray[np.float64]] = None
         self.n_regressors: Optional[int] = None
@@ -48,7 +52,12 @@ class FourierForecast:
             regressors: Optional[NDArray[np.float64]] = None,
             sample_weight: Optional[NDArray[np.float64]] = None
             ):
-        self.y = self._to_numpy(y)
+
+        if (y.min() <= 0) and self.log_y:
+            self.log_y = False
+            warnings.warn(f'For log_y=True, values of y must be > 0. Found value: {y.min()}. Setting log_y to False.')
+
+        self.y = self._to_numpy(np.log(y) if self.log_y else y)
         self._initiate_sample_weight(sample_weight)
         self.n_regressors = 0 if regressors is None else regressors.shape[1]
 
@@ -119,7 +128,8 @@ class FourierForecast:
             self.sample_weight = sample_weight / sample_weight.max()
 
     def fitted(self) -> NDArray[np.float64]:
-        return self.x_ @ self.params_
+        y_hat = self.x_ @ self.params_
+        return np.exp(y_hat) if self.log_y else y_hat
 
     def predict(self, h: int = 1, regressors: Optional[NDArray[np.float64]] = None) -> NDArray[np.float64]:
 
@@ -132,7 +142,8 @@ class FourierForecast:
             self._initiate_regressors(regressors, h)
         ], axis=1)
 
-        return x @ self.params_
+        preds = x @ self.params_
+        return np.exp(preds) if self.log_y else preds
 
     def plot_components(self) -> go.Figure:
         return plot_components(self)
