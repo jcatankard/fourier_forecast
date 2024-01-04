@@ -44,7 +44,7 @@ class FourierForecast:
             ):
         self.y = self._to_numpy(y)
         self._initiate_sample_weight(sample_weight)
-        self.n_regressors = None if regressors is None else regressors.shape[1]
+        self.n_regressors = 0 if regressors is None else regressors.shape[1]
 
         self.pred_start = y.size
         self.ds = np.arange(0, y.size, dtype=np.int64)
@@ -56,8 +56,16 @@ class FourierForecast:
             self._initiate_regressors(regressors, y.size)
         ], axis=1)
 
+        self._rescale_data()
+
         penalty = self._initiate_regularization_penalty()
         self.params_ = np.linalg.inv(self.x_.T @ self.x_ + penalty) @ self.x_.T @ self.y
+
+    def _rescale_data(self):
+        """reference: https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/linear_model/_base.py"""
+        sample_weight_sqrt = np.sqrt(self.sample_weight)
+        self.x_ *= sample_weight_sqrt[:, np.newaxis]
+        self.y *= sample_weight_sqrt[: np.newaxis]
 
     def _initiate_regularization_penalty(self) -> NDArray[np.int64]:
         penalty = np.identity(self.x_.shape[1])
