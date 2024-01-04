@@ -53,12 +53,7 @@ def update_waves(amplitudes: NDArray[np.float64],
                  ):
     for w in range(amplitudes.size):
         da = dy_da(phases[w], frequencies[w], ds) * cost_derivative
-        dp = dy_dp(amplitudes[w], phases[w], frequencies[w], ds) * cost_derivative
-        # df = dy_df(amplitudes[w], phases[w], frequencies[w], ds) * cost_derivative
-
         amplitudes[w] -= da.sum() * learning_rate
-        phases[w] -= dp.sum() * learning_rate
-        # frequencies[w] -= df.sum() * learning_rate
 
     return amplitudes, phases, frequencies
 

@@ -61,7 +61,7 @@ class FourierForecast:
                 self.frequencies[count] = f
                 self.frequencies[count + 1] = f
                 self.phases[count] = 0
-                self.phases[count + 1] = np.pi
+                self.phases[count + 1] = np.pi / 2
 
                 # windows = np.lib.stride_tricks.sliding_window_view(y_detrend, int(1 / f))
                 # amp_int = (windows.max(axis=1) - windows.min(axis=1)).mean() / 2
