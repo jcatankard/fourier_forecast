@@ -35,10 +35,6 @@ optional regressors and noise.
  - quarterly_seasonality_terms: int, default=0
  - yearly_seasonality_terms: int, default=10
    - number of fourier series components for each seasonality type
- - learning_rate: float, default=0.001
- - n_iterations: int, default=100_000
- - tol: float, default=1e-5
-   - stops training if the max, absolute parameter update is smaller than tol
 
 ### Methods
  - fit
