@@ -1,6 +1,6 @@
 from numpy.typing import NDArray
-import matplotlib.pyplot as plt
 from typing import Optional
+from fourier_forecast.plot import plot_components
 import numpy as np
 
 
@@ -44,6 +44,7 @@ class FourierForecast:
             ):
         self.y = self._to_numpy(y)
         self._initiate_sample_weight(sample_weight)
+        self.n_regressors = None if regressors is None else regressors.shape[1]
 
         self.pred_start = y.size
         self.ds = np.arange(0, y.size, dtype=np.int64)
@@ -52,7 +53,7 @@ class FourierForecast:
             self._initiate_bias(self.ds),
             self._initiate_trend(self.ds),
             self._initiate_seasonalities(self.ds),
-            self._initiate_regressors(regressors, y.size, 0)
+            self._initiate_regressors(regressors, y.size)
         ], axis=1)
 
         penalty = self._initiate_regularization_penalty()
@@ -86,13 +87,8 @@ class FourierForecast:
         """create trend array. later allow option for flat trend."""
         return ds.astype(np.float64).reshape(-1, 1)
 
-    def _initiate_regressors(self, regressors: Optional[NDArray], size: int, default_width: int) -> NDArray[np.float64]:
-        regressors = np.zeros((size, default_width), dtype=np.float64) \
-            if regressors is None else self._to_numpy(regressors)
-
-        self.n_regressors = regressors.shape[1]
-
-        return regressors
+    def _initiate_regressors(self, regs: Optional[NDArray], size: int) -> NDArray[np.float64]:
+        return np.zeros((size, self.n_regressors), dtype=np.float64) if regs is None else self._to_numpy(regs)
 
     def _initiate_sample_weight(self, sample_weight: Optional[NDArray[np.float64]]):
         if sample_weight is None:
@@ -118,43 +114,10 @@ class FourierForecast:
             self._initiate_bias(ds),
             self._initiate_trend(ds),
             self._initiate_seasonalities(ds),
-            self._initiate_regressors(regressors, h, self.n_regressors)
+            self._initiate_regressors(regressors, h)
         ], axis=1)
 
         return x @ self.params_
 
-    @staticmethod
-    def subplot(ax, ds: NDArray[np.int64], data: NDArray[np.float64], label: str):
-        ax.plot(ds, data, label=label)
-        ax.legend()
-
     def plot_components(self):
-        n_seasonalities = len(self.seasonality_terms)
-        n_rows = 2 + np.ceil(n_seasonalities / 2).astype(np.int64)
-        fig, ax = plt.subplots(nrows=n_rows, ncols=2)
-
-        self.subplot(ax[0, 0], self.ds, self.x_[:, 0] * self.params_[0], 'bias')
-        self.subplot(ax[0, 1], self.ds, self.x_[:, 1] * self.params_[1], 'trend')
-
-        regs = self.x_[:, -self.n_regressors:] @ self.params_[-self.n_regressors:]
-        self.subplot(ax[1, 0], self.ds, regs, 'regressors')
-
-        self.subplot(ax[1, 1], self.ds, self.y - self.fitted(), 'noise')
-
-        start_col = 2
-        for i, (periods, n_terms) in enumerate(self.seasonality_terms.items()):
-            n_to_plot = np.ceil(periods).astype(np.int64)
-            ds = np.arange(n_to_plot)
-
-            end_col = start_col + n_terms * 2
-            s = self.x_[:, start_col: end_col] @ self.params_[start_col: end_col]
-
-            row = 2 + i // 2
-            col = i % 2
-            self.subplot(ax[row, col], ds, s[: n_to_plot], f'seasonality: periods={periods}')
-
-            start_col = end_col
-
-        if n_seasonalities % 2 == 1:
-            ax[n_rows - 1, 1].axis('off')
-        plt.show()
+        plot_components(self)
