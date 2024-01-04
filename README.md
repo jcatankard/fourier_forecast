@@ -7,25 +7,30 @@ optional regressors and noise.
 - Components can be visualised with plot_components method
 - Numba is used for performance boost
 
-[Medium blog post](https://medium.com/@jcatankard_76170/forecasting-with-fourier-series-8196721e7a3a)
+### Blog posts:
+ - [Part I](https://medium.com/@jcatankard_76170/forecasting-with-fourier-series-8196721e7a3a)
+ - [Part II](https://medium.com/@jcatankard_76170/forecasting-with-fourier-series-part-ii-f74bdeaf1722)
 
 ### Seasonality:
-- In theory seasonal components can be fitted with less training data than a full season
-  - e.g. yearly seasonality can be fitted even when the training data covers just 9 months
-    - however, for best performance, aim to include at least two cycles of the largest seasonal component to be fitted
-  - multiple waves per seasonality are fit according to the specified Fourier order
+- For best performance, aim to include at least two cycles of the largest seasonal component to be fitted 
+- Multiple waves per seasonality are fit according to the specified Fourier order
     - more terms results in better fit but can result in over-fitting
-  - fitting frequency by gradient descent does not result in stable outcomes so only amplitude and phase are fitted
-  whilst seasonal periods are set by pre-determined values:
-     - weekly seasonality: 7 days
-     - monthly seasonality: 30.43 days
-     - quarterly seasonality: 91.31 days
-     - yearly seasonality: 365.25 days
-  - for multiplicative seasonality, it may be best to log transform your time-series before fitting
-    - where necessary it may also be appropriate to log transform some or all regressors
+- Seasonal periods are set by pre-determined values:
+   - weekly seasonality: 7 days
+   - monthly seasonality: 30.43 days
+   - quarterly seasonality: 91.31 days
+   - yearly seasonality: 365.25 days
+- If seasonal terms interact with each other (i.e. are not just additive), it may be best to log transform your time-series before fitting
+  - where necessary it may also be appropriate to log transform some or all regressors
 
 ### Future updates:
  - prediction intervals
+ - parameter to specify linear or flat trend
+ - parameter to remove bias term
+ - add parameter to log values
+ - add regularization to trend, seasonalities and regressors
+ - replace matplotlib with plotly library
+ - add autoregression lags
  - add deploy to pip into pipeline
 
 ## FourierForecast
