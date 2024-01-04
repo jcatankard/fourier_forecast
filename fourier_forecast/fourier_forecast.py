@@ -63,9 +63,10 @@ class FourierForecast:
 
     def _rescale_data(self):
         """reference: https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/linear_model/_base.py"""
-        sample_weight_sqrt = np.sqrt(self.sample_weight)
-        self.x_ *= sample_weight_sqrt[:, np.newaxis]
-        self.y *= sample_weight_sqrt[: np.newaxis]
+        if self.sample_weight is not None:
+            sample_weight_sqrt = np.sqrt(self.sample_weight)
+            self.x_ *= sample_weight_sqrt[:, np.newaxis]
+            self.y *= sample_weight_sqrt[: np.newaxis]
 
     def _initiate_regularization_penalty(self) -> NDArray[np.int64]:
         penalty = np.identity(self.x_.shape[1])
@@ -100,7 +101,7 @@ class FourierForecast:
 
     def _initiate_sample_weight(self, sample_weight: Optional[NDArray[np.float64]]):
         if sample_weight is None:
-            self.sample_weight = np.ones_like(self.y, dtype=np.float64)
+            self.sample_weight = None
         elif min(sample_weight) < 0:
             raise ValueError('All sample weights must be >= 0')
         elif max(sample_weight) == 0:
