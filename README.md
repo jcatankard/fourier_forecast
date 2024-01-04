@@ -29,7 +29,6 @@ optional regressors and noise.
  - parameter to remove bias term
  - add parameter to log values
  - add regularization to trend, seasonalities and regressors
- - replace matplotlib with plotly library
  - add autoregression lags
  - add deploy to pip into pipeline
 

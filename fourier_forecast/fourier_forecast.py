@@ -1,5 +1,6 @@
-from fourier_forecast.plot import plot_components
+from fourier_forecast.plot import plot_components, plot_regressor_components, plot_seasonality_components
 from numpy.typing import NDArray
+import plotly.graph_objs as go
 from typing import Optional
 import numpy as np
 
@@ -133,5 +134,11 @@ class FourierForecast:
 
         return x @ self.params_
 
-    def plot_components(self):
-        plot_components(self)
+    def plot_components(self) -> go.Figure:
+        return plot_components(self)
+
+    def plot_regressor_components(self, regressor_names: Optional[list[str]] = None) -> go.Figure:
+        return plot_regressor_components(self, regressor_names)
+
+    def plot_seasonality_components(self) -> go.Figure:
+        return plot_seasonality_components(self)

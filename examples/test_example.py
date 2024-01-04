@@ -1,6 +1,6 @@
 from fourier_forecast.fourier_forecast import FourierForecast
 from tests.create_data import create_data
-import matplotlib.pyplot as plt
+import plotly.graph_objs as go
 import numpy as np
 import time
 
@@ -15,7 +15,9 @@ if __name__ == '__main__':
     start = time.time()
     ff.fit(actuals[: n], regressors=regressors[: n])
     print('Time to fit:', round(time.time() - start, 3))
-    ff.plot_components()
+    ff.plot_components().show()
+    # ff.plot_seasonality_components().show()
+    # ff.plot_regressor_components().show()
 
     pred = ff.predict(h=ds.size - n, regressors=regressors[n:])
 
@@ -24,9 +26,9 @@ if __name__ == '__main__':
     print('CLEAN vs ACTUALS:', np.abs(clean[: n] - actuals[: n]).mean().round(3))
     print('PREDS vs CLEAN:', np.abs(pred - clean[n:]).mean().round(3))
 
-    plt.plot(ds, actuals, label='actuals')
-    plt.plot(ds[: n], ff.fitted(), label='fitted')
-    plt.plot(ds[n:], pred, label='preds')
-    # plt.plot(ds, clean, label='clean')
-    plt.legend()
-    plt.show()
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=ds, y=actuals, mode='lines', name='actuals'))
+    fig.add_trace(go.Scatter(x=ds[: n], y=ff.fitted(), mode='lines', name='fitted'))
+    fig.add_trace(go.Scatter(x=ds[n:], y=pred, mode='lines', name='preds'))
+    fig.update_layout(showlegend=True)
+    fig.show()
