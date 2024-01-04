@@ -1,4 +1,5 @@
-from fourier_forecast.fourier_forecast import FourierForecast, sin_wave
+from fourier_forecast.fourier_forecast import FourierForecast
+from fourier_forecast.waves import sin_wave
 from datetime import date, timedelta
 from numpy.typing import NDArray
 import numpy as np
