@@ -74,9 +74,7 @@ if __name__ == '__main__':
         preds = ff.predict(h=h, regressors=test_hols)
         preds = np.exp(preds)
 
-        # ff.plot_components()
         ff_results[i] = calculate_mape(preds, test_df['y'].values)
-        # plot_results(test_df['ds'].values, test_df['y'].values, preds)
 
         # Prophet ##############
         m = Prophet(seasonality_mode='multiplicative', uncertainty_samples=False)
@@ -87,7 +85,6 @@ if __name__ == '__main__':
         pred_df = m.predict(future_df)
 
         prophet_results[i] = calculate_mape(pred_df['yhat'].values, test_df['y'].values)
-        # plot_results(test_df['ds'].values, test_df['y'].values, pred_df['yhat'].values)
 
         # AutoArima #############
         # aa = MSTL(season_length=[7, 365], trend_forecaster=AutoARIMA())
