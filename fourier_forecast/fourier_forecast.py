@@ -1,6 +1,6 @@
+from fourier_forecast.plot import plot_components
 from numpy.typing import NDArray
 from typing import Optional
-from fourier_forecast.plot import plot_components
 import numpy as np
 
 
