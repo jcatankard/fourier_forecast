@@ -16,7 +16,8 @@ def make_regressors(t: NDArray[np.int64], regressors: bool) -> NDArray:
 
 
 def create_data(regressors: bool,
-                fourier_terms: NDArray
+                fourier_terms: NDArray,
+                log_y: bool = False
                 ) -> tuple[NDArray[date], NDArray[np.float64], NDArray[np.float64]]:
 
     size = np.random.randint(366 * 2, 366 * 3)
@@ -24,15 +25,23 @@ def create_data(regressors: bool,
     t = np.arange(size, dtype=np.int64)
     regressor_x = make_regressors(t, regressors)
 
-    y_clean = np.array([
-        np.random.normal(0, .1) * t,  # trend
-        np.random.choice([-1, 1]) * np.random.randint(1, 100) * np.ones(size),  # bias
-        np.sum(regressor_x, axis=1)  # regressors
-    ]).sum(axis=0)
+    if log_y:
+        y_clean = np.array([
+            np.random.randint(1, 100) * np.ones(size),  # bias
+            np.sum(regressor_x, axis=1)  # regressors
+        ]).sum(axis=0)
+    else:
+        y_clean = np.array([
+            np.random.normal(0, .1) * t,  # trend
+            np.random.choice([-1, 1]) * np.random.randint(1, 100) * np.ones(size),  # bias
+            np.sum(regressor_x, axis=1)  # regressors
+        ]).sum(axis=0)
 
     # weeks, months, quarters, years
     for i, periods in enumerate([7, 30.43, 91.31, 365.25]):
         for f in range(fourier_terms[i]):
             y_clean += make_wave(t, (f + 1) / periods)
+
+    y_clean = np.exp(10 * y_clean / y_clean.max()) if log_y else y_clean
 
     return ds, y_clean, regressor_x

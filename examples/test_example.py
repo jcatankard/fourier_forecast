@@ -6,11 +6,14 @@ import time
 
 
 if __name__ == '__main__':
+
+    log_y = True
     fourier_terms = np.array([3, 0, 0, 10])
-    ds, clean, regressors = create_data(regressors=True, fourier_terms=fourier_terms)
+
+    ds, clean, regressors = create_data(regressors=True, fourier_terms=fourier_terms, log_y=log_y)
     actuals = clean + np.random.normal(0, 1, ds.size) * 2.5
 
-    ff = FourierForecast(*fourier_terms)
+    ff = FourierForecast(log_y=log_y, *fourier_terms)
     n = 700
     start = time.time()
     ff.fit(actuals[: n], regressors=regressors[: n])
