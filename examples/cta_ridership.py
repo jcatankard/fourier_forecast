@@ -59,13 +59,10 @@ if __name__ == '__main__':
         test_hols = hols[test_index]
 
         # FourierForecast ##############
-        ff = FourierForecast(weekly_seasonality_terms=3, yearly_seasonality_terms=10)
-        y = np.log(train_df['y'].values)
-        ff.fit(y, regressors=train_hols)
+        ff = FourierForecast(weekly_seasonality_terms=3, yearly_seasonality_terms=10, log_y=True)
+        ff.fit(train_df['y'].values, regressors=train_hols)
 
         preds = ff.predict(h=h, regressors=test_hols)
-        preds = np.exp(preds)
-
         ff_results[i] = calculate_mape(preds, test_df['y'].values)
 
         # Prophet ##############
