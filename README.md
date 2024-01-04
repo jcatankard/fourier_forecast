@@ -27,7 +27,6 @@ optional regressors and noise.
  - prediction intervals
  - parameter to specify linear or flat trend
  - parameter to remove bias term
- - add parameter to log values
  - add regularization to trend, seasonalities and regressors
  - add autoregression lags
  - add deploy to pip into pipeline
