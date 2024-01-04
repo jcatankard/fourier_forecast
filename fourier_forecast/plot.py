@@ -37,12 +37,14 @@ def plot_components(m, figsize: tuple[int, int] = FIGSIZE) -> go.Figure:
 
 
 def get_trend_component(m) -> COMPONENTS_TYPE:
-    trend = m.x_[:, 0] * m.params_[0] + m.x_[:, 1] * m.params_[1]
+    trend = m.params_[0] + m.x_[:, 1] * m.params_[1]
+    trend = np.exp(trend) if m.log_y else trend
+    range_y = [min(0, trend.min() * 1.25), max(0, trend.max() * 1.25)]
     name = 'trend'
     return {name: {
         'trace': get_trace(name, m.ds, trend),
         'xaxis': go.layout.XAxis(range=[min(m.ds), max(m.ds)]),
-        'yaxis': go.layout.YAxis(title=go.layout.yaxis.Title(text=name))
+        'yaxis': go.layout.YAxis(title=go.layout.yaxis.Title(text=name), range=range_y)
     }
     }
 
@@ -66,7 +68,6 @@ def get_seasonality_components(m) -> COMPONENTS_TYPE:
 
         end_col = start_col + n_terms * 2
         y = m.x_[: n_to_plot, start_col: end_col] @ m.params_[start_col: end_col]
-
         name = f'seasonality: periods={periods}'
 
         components[name] = {
@@ -85,8 +86,9 @@ def get_regressor_components(m, regressor_names: list[str]) -> COMPONENTS_TYPE:
     components = {}
     for i, name in enumerate(regressor_names):
         col = start_col + i
+        reg = m.x_[:, col] * m.params_[col]
         components[name] = {
-            'trace': get_trace(name, m.ds, m.x_[:, col] * m.params_[col]),
+            'trace': get_trace(name, m.ds, reg),
             'xaxis': go.layout.XAxis(range=[min(m.ds), max(m.ds)]),
             'yaxis': go.layout.YAxis(title=go.layout.yaxis.Title(text=name))
         }
