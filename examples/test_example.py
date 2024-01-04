@@ -8,10 +8,11 @@ import time
 if __name__ == '__main__':
 
     log_y = True
+    noise_scale = 500 if log_y else 2.5
     fourier_terms = np.array([3, 0, 0, 10])
 
     ds, clean, regressors = create_data(regressors=True, fourier_terms=fourier_terms, log_y=log_y)
-    actuals = clean + np.random.normal(0, 1, ds.size) * 2.5
+    actuals = clean + np.random.normal(0, 1, ds.size) * noise_scale
 
     ff = FourierForecast(log_y=log_y, *fourier_terms)
     n = 700
