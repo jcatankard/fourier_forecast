@@ -39,6 +39,9 @@ optional regressors and noise.
  - quarterly_seasonality_terms: int, default=0
  - yearly_seasonality_terms: int, default=10
    - number of fourier series components for each seasonality type
+ - log_y: bool, default=False
+   - y values must be positive
+   - can be helpful if data has non-linear relationship
 
 ### Methods
  - fit
