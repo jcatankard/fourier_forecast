@@ -55,10 +55,17 @@ optional regressors and noise.
      - regressors corresponding to days to predict 
      - if regressors are present during fitting, these must have the same number of features
      - if None is passed, then all values will assume to be 0.
- - plot_components
-   - plots bias, trends, seasonality, regressors and noise
  - fitted
    - returns fitted values
+
+
+ - plot_components
+   - plots bias, trends, seasonalities, regressors and noise
+ - plot_seasonality_components
+   - plots seasonalities only
+ - plot_regression_components
+   - regressor_names: list[str], default=None
+   - plots individual regressors as their own subplot
 
 ## Examples
 ### fit and predict example
