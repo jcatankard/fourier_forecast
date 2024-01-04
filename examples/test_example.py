@@ -1,5 +1,5 @@
 from fourier_forecast.fourier_forecast import FourierForecast
-from tests.test_fourier_forecast import create_data
+from tests.create_data import create_data
 import matplotlib.pyplot as plt
 import numpy as np
 import time
