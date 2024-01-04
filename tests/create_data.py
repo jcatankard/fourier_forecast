@@ -10,7 +10,7 @@ def make_wave(t: NDArray[np.int64], freq: float) -> NDArray[np.float64]:
 
 
 def make_regressors(t: NDArray[np.int64], regressors: bool) -> NDArray:
-    p = np.random.rand() if regressors else 1.
+    p = np.random.normal(.5, .1) if regressors else 1.
     n_features = np.random.randint(2, 20) if regressors else 0
     return np.random.choice([0, 1], size=t.size * n_features, p=[p, 1 - p]).reshape(t.size, -1)
 

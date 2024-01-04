@@ -18,7 +18,6 @@ class FourierForecast:
                  quarterly_seasonality_terms: int = 0,
                  yearly_seasonality_terms: int = 10
                  ):
-        # add params for linear/flat trend, fit-intercept, regularization terms
 
         seasonality_terms = {
             DAYS_IN_WEEK: weekly_seasonality_terms,
