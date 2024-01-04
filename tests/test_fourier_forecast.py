@@ -1,5 +1,5 @@
 from fourier_forecast.fourier_forecast import FourierForecast
-from create_data import create_data
+from .create_data import create_data
 import numpy as np
 import unittest
 
