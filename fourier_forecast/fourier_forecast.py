@@ -4,6 +4,12 @@ from typing import Optional
 import numpy as np
 
 
+DAYS_IN_WEEK = 7.
+DAYS_IN_MONTH = 30.43
+DAYS_IN_QUARTER = 91.31
+DAYS_IN_YEAR = 365.25
+
+
 class FourierForecast:
 
     def __init__(self,
@@ -15,10 +21,10 @@ class FourierForecast:
         # add params for linear/flat trend, fit-intercept, regularization terms
 
         seasonality_terms = {
-            7.: weekly_seasonality_terms,
-            30.43: monthly_seasonality_terms,
-            91.31: quarterly_seasonality_terms,
-            365.25: yearly_seasonality_terms
+            DAYS_IN_WEEK: weekly_seasonality_terms,
+            DAYS_IN_MONTH: monthly_seasonality_terms,
+            DAYS_IN_QUARTER: quarterly_seasonality_terms,
+            DAYS_IN_YEAR: yearly_seasonality_terms
         }
         self.seasonality_terms = {k: v for k, v in seasonality_terms.items() if v > 0}
         self.n_waves = 2 * sum(self.seasonality_terms.values())
