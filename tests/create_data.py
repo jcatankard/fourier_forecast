@@ -27,6 +27,7 @@ def create_data(regressors: bool,
 
     if log_y:
         y_clean = np.array([
+            np.random.normal(0.05, .01) * t,  # trend
             np.random.randint(1, 100) * np.ones(size),  # bias
             np.sum(regressor_x, axis=1)  # regressors
         ]).sum(axis=0)
@@ -42,6 +43,8 @@ def create_data(regressors: bool,
         for f in range(fourier_terms[i]):
             y_clean += make_wave(t, (f + 1) / periods)
 
-    y_clean = np.exp(10 * y_clean / y_clean.max()) if log_y else y_clean
+    if log_y:
+        y_clean = (y_clean - y_clean.min()) / (y_clean.max() - y_clean.min())
+        y_clean = np.exp(y_clean + 10)
 
     return ds, y_clean, regressor_x
