@@ -3,7 +3,6 @@ from statsforecast.models import AutoARIMA, MSTL
 from holidays import country_holidays
 from datetime import date, timedelta
 from numpy.typing import NDArray
-import matplotlib.pyplot as plt
 from itertools import product
 from prophet import Prophet
 import pandas as pd
@@ -20,19 +19,12 @@ def find_holidays_pdf(markets: list[str], start_date: date, end_date: date) -> p
     """return dataframe by date & market with is_holiday column where True for holiday date and false otherwise"""
     mh = find_holidays(markets, start_date, end_date)
     dates = np.arange(start_date, end_date + timedelta(days=1)).astype('O')
-    df = pd.DataFrame(product(markets, dates), columns=['MARKET', 'DATE'])
-    return df.assign(IS_HOLIDAY=df.apply(lambda z: z['DATE'] in mh[z['MARKET']], axis=1))
+    pdf = pd.DataFrame(product(markets, dates), columns=['MARKET', 'DATE'])
+    return pdf.assign(IS_HOLIDAY=pdf.apply(lambda z: z['DATE'] in mh[z['MARKET']], axis=1))
 
 
-def calculate_mape(preds: NDArray, actuals: NDArray) -> float:
-    return np.abs(preds / actuals - 1).mean()
-
-
-def plot_results(test_dates: NDArray, actuals: NDArray, preds: NDArray):
-    plt.plot(test_dates, actuals, label='actuals')
-    plt.plot(test_dates, preds, label='preds')
-    plt.legend()
-    plt.show()
+def calculate_mape(predictions: NDArray, actuals: NDArray) -> float:
+    return np.abs(predictions / actuals - 1).mean()
 
 
 if __name__ == '__main__':
