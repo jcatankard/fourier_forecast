@@ -23,7 +23,7 @@ class TestFourierForecast(unittest.TestCase):
             print(f'basic tests: {i + 1}')
             fourier_terms = self.get_fourier_terms()
             _, y, _ = create_data(regressors=False, fourier_terms=list(fourier_terms.values()))
-            ff = FourierForecast(*fourier_terms)
+            ff = FourierForecast(**fourier_terms)
             ff.fit(y)
 
             assert np.abs(ff.fitted() - y).mean() < self.atol
@@ -34,7 +34,7 @@ class TestFourierForecast(unittest.TestCase):
             print(f'regressors tests: {i + 1}')
             fourier_terms = self.get_fourier_terms()
             _, y, r = create_data(regressors=True, fourier_terms=list(fourier_terms.values()))
-            ff = FourierForecast(*fourier_terms)
+            ff = FourierForecast(**fourier_terms)
             ff.fit(y, regressors=r)
 
             assert np.abs(ff.fitted() - y).mean() < self.atol
@@ -52,7 +52,7 @@ class TestFourierForecast(unittest.TestCase):
             w = np.concatenate([np.zeros(n), np.ones(y.size - n)], axis=0)
             y[: n] *= np.random.normal(1., 1., n)
 
-            ff = FourierForecast(*fourier_terms)
+            ff = FourierForecast(**fourier_terms)
             ff.fit(y, sample_weight=w)
 
             assert np.abs(ff.fitted() - y).mean() < self.atol
@@ -63,7 +63,7 @@ class TestFourierForecast(unittest.TestCase):
             print(f'log y tests: {i + 1}')
             fourier_terms = self.get_fourier_terms()
             _, y, _ = create_data(regressors=False, fourier_terms=list(fourier_terms.values()), log_y=True)
-            ff = FourierForecast(*fourier_terms, log_y=True)
+            ff = FourierForecast(**fourier_terms, log_y=True)
             ff.fit(y)
 
             assert np.abs(ff.fitted() - y).mean() < self.atol
@@ -71,7 +71,7 @@ class TestFourierForecast(unittest.TestCase):
 
     def test_regularization(self):
         for i in range(self.n_tests):
-            print(f'regressors tests: {i + 1}')
+            print(f'regularization tests: {i + 1}')
             fourier_terms = self.get_fourier_terms()
             _, y, _ = create_data(regressors=False, fourier_terms=list(fourier_terms.values()))
             y += np.random.normal(0, 10, y.size)
