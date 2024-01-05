@@ -24,9 +24,10 @@ if __name__ == '__main__':
     actuals = clean + np.random.normal(0, 1, ds.size) * noise_scale
 
     ff = FourierForecast(log_y=log_y,
-                         seasonality_reg=100,
+                         seasonality_reg=0,
                          regressor_reg=0,
-                         trend_reg=100,
+                         trend_reg=0,
+                         growth='linear',
                          **fourier_terms
                          )
     n = 700

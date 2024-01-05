@@ -25,13 +25,12 @@ optional regressors and noise.
 
 ### Future updates:
  - prediction intervals
- - parameter to specify linear or flat trend
- - parameter to remove bias term
  - add autoregression lags
  - add deploy to pip into pipeline
 
 ## FourierForecast
 ### Parameters
+- growth: str, default='linear'. Possible values 'linear', 'flat', 'logistic', 'logarithmic'.
 - weekly_seasonality_terms: int, default=3
     - number of Fourier terms to generate for fitting seasonality of 7 days
 - monthly_seasonality_terms: int, default=0

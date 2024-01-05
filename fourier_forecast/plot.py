@@ -37,7 +37,7 @@ def plot_components(m, figsize: tuple[int, int] = FIGSIZE) -> go.Figure:
 
 
 def get_trend_component(m) -> COMPONENTS_TYPE:
-    trend = m.params_[0] + m.x_[:, 1] * m.params_[1]
+    trend = m.x_[:, : m.seasonality_start_column] @ m.params_[: m.seasonality_start_column]
     trend = np.exp(trend) if m.log_y else trend
     range_y = [min(0, trend.min() * 1.25), max(0, trend.max() * 1.25)]
     name = 'trend'

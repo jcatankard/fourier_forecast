@@ -16,6 +16,7 @@ class FourierForecast:
     """Timeseries forecaster for daily timeseries using Fourier series, trend and exogenous regressors"""
 
     def __init__(self,
+                 growth: str = str,
                  weekly_seasonality_terms: int = 3,
                  monthly_seasonality_terms: int = 0,
                  quarterly_seasonality_terms: int = 0,
@@ -26,6 +27,7 @@ class FourierForecast:
                  log_y: bool = False
                  ):
         """
+        :param growth: str, default='linear'. Possible values 'linear', 'flat', 'logistic', 'logarithmic'.
         :param weekly_seasonality_terms: int, default=3
             - number of Fourier terms to generate for fitting seasonality of 7 days
         :param monthly_seasonality_terms: int, default=0
@@ -51,6 +53,7 @@ class FourierForecast:
             - all values must be positive or reverts bact to False
             - useful for fitting interactive effects between seasonality, trend and regressors
         """
+        self.growth = growth
 
         seasonality_terms = {
             DAYS_IN_WEEK: weekly_seasonality_terms,
@@ -61,8 +64,8 @@ class FourierForecast:
         self.seasonality_terms = {k: v for k, v in seasonality_terms.items() if v > 0}
         self.n_waves = 2 * sum(self.seasonality_terms.values())
 
-        self.seasonality_start_column = 2
-        self.regressor_start_column = 2 + self.n_waves
+        self.seasonality_start_column = 1 if growth == 'flat' else 2
+        self.regressor_start_column = self.seasonality_start_column + self.n_waves
 
         self.log_y = log_y
 
@@ -177,12 +180,22 @@ class FourierForecast:
 
     @staticmethod
     def _initiate_bias(ds: NDArray[np.int64]) -> NDArray[np.float64]:
-        """create intercept. later allow option for no intercept."""
         return np.ones(shape=(ds.size, 1), dtype=np.float64)
 
     def _initiate_trend(self, ds: NDArray[np.int64]) -> NDArray[np.float64]:
-        """create trend array. later allow option for flat trend."""
-        return ds.astype(np.float64).reshape(-1, 1) / self.y.size
+        linear = ds.astype(np.float64).reshape(-1, 1) / self.y.size
+        if self.growth == 'linear':
+            return linear
+        elif self.growth == 'logistic':
+            return 1 / (1 + np.exp((0.5 - linear) * 10))
+        elif self.growth == 'logarithmic':
+            return np.log(linear * (np.e - 1) + 1)
+        elif self.growth == 'flat':
+            return np.zeros((ds.size, 0), dtype=np.float64)
+        else:
+            raise ValueError(
+                f"""growth attribute must be 'linear', 'flat', 'logistic', 'logarithmic'. Found: {self.growth}."""
+                             )
 
     def _initiate_regressors(self, regs: Optional[NDArray], size: int) -> NDArray[np.float64]:
         return np.zeros((size, self.n_regressors), dtype=np.float64) if regs is None else self._to_numpy(regs)
