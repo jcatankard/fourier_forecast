@@ -26,7 +26,6 @@ optional regressors and noise.
 ### Future updates:
  - prediction intervals
  - add autoregression lags
- - add deploy to pip into pipeline
 
 ## FourierForecast
 ### Parameters
