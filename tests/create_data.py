@@ -16,7 +16,7 @@ def make_regressors(t: NDArray[np.int64], regressors: bool) -> NDArray:
 
 
 def create_data(regressors: bool,
-                fourier_terms: NDArray,
+                fourier_terms: list,
                 log_y: bool = False
                 ) -> tuple[NDArray[date], NDArray[np.float64], NDArray[np.float64]]:
 

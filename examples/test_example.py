@@ -17,7 +17,7 @@ if __name__ == '__main__':
     }
 
     ds, clean, regressors = create_data(regressors=True,
-                                        fourier_terms=np.array(list(fourier_terms.values())),
+                                        fourier_terms=list(fourier_terms.values()),
                                         log_y=log_y
                                         )
 
