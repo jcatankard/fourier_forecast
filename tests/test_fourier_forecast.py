@@ -90,7 +90,7 @@ class TestFourierForecast(unittest.TestCase):
 
     def test_trend(self):
         for i in range(self.n_tests):
-            print(f'basic tests: {i + 1}')
+            print(f'trend tests: {i + 1}')
             fourier_terms = self.get_fourier_terms()
             trend_type = np.random.choice(['linear', 'flat', 'logarithmic', 'logistic'])
             _, y, _ = create_data(regressors=False, fourier_terms=list(fourier_terms.values()), growth=trend_type)
