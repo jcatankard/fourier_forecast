@@ -27,20 +27,35 @@ optional regressors and noise.
  - prediction intervals
  - parameter to specify linear or flat trend
  - parameter to remove bias term
- - add regularization to trend, seasonalities and regressors
  - add autoregression lags
  - add deploy to pip into pipeline
 
 ## FourierForecast
 ### Parameters
- - weekly_seasonality_terms: int, default=3
- - monthly_seasonality_terms: int, default=0
- - quarterly_seasonality_terms: int, default=0
- - yearly_seasonality_terms: int, default=10
-   - number of fourier series components for each seasonality type
- - log_y: bool, default=False
-   - y values must be positive
-   - can be helpful if data has non-linear relationship
+- weekly_seasonality_terms: int, default=3
+    - number of Fourier terms to generate for fitting seasonality of 7 days
+- monthly_seasonality_terms: int, default=0
+    - number of Fourier terms to generate for fitting seasonality of 30.43 days
+- quarterly_seasonality_terms: int, default=0
+    - number of Fourier terms to generate for fitting seasonality of 91.31 days
+- yearly_seasonality_terms: int, default=10
+    - number of Fourier terms to generate for fitting seasonality of 365.25 days
+- trend_reg: float, default=0
+    - parameter regulating strength of trend fit
+    - smaller values (~0-1) allow the model to fit larger seasonal fluctuations,
+    - larger values (~1-100) dampen the seasonality.
+- seasonality_reg: float, default=0
+    - parameter regulating strength of seasonality fit
+    - smaller values (~0-1) allow the model to fit larger seasonal fluctuations,
+    - larger values (~1-100) dampen the seasonality.
+- regressor_reg: float, default=0
+    - parameter regulating strength of regressors fit
+    - smaller values (~0-1) allow the model to fit larger seasonal fluctuations,
+    - larger values (~1-100) dampen the seasonality.
+- log_y: bool, default=True
+    - takes the natural logarithm of the timeseries before fitting (and the exponent after predicting)
+    - all values must be positive or reverts bact to False
+    - useful for fitting interactive effects between seasonality, trend and regressors
 
 ### Methods
  - fit
