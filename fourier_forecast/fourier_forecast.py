@@ -16,7 +16,7 @@ class FourierForecast:
     """Timeseries forecaster for daily timeseries using Fourier series, trend and exogenous regressors"""
 
     def __init__(self,
-                 growth: str = str,
+                 growth: str = 'linear',
                  weekly_seasonality_terms: int = 3,
                  monthly_seasonality_terms: int = 0,
                  quarterly_seasonality_terms: int = 0,
