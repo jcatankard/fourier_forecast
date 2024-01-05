@@ -87,3 +87,15 @@ class TestFourierForecast(unittest.TestCase):
             ff2.fit(y)
 
             assert np.absolute(ff1.params_[1]) < np.absolute(ff2.params_[1])
+
+    def test_trend(self):
+        for i in range(self.n_tests):
+            print(f'basic tests: {i + 1}')
+            fourier_terms = self.get_fourier_terms()
+            trend_type = np.random.choice(['linear', 'flat', 'logarithmic', 'logistic'])
+            _, y, _ = create_data(regressors=False, fourier_terms=list(fourier_terms.values()), growth=trend_type)
+            ff = FourierForecast(growth=trend_type, **fourier_terms)
+            ff.fit(y)
+
+            assert np.abs(ff.fitted() - y).mean() < self.atol
+            np.testing.assert_allclose(ff.fitted(), y, atol=self.atol, rtol=self.rtol)
