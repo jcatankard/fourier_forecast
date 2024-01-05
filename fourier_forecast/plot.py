@@ -50,7 +50,7 @@ def get_trend_component(m) -> COMPONENTS_TYPE:
 
 
 def get_extra_regressors_component(m) -> COMPONENTS_TYPE:
-    regs = m.x_[:, -m.n_regressors:] @ m.params_[-m.n_regressors:]
+    regs = m.x_[:, -m.regressor_start_column:] @ m.params_[-m.regressor_start_column:]
     name = 'extra_regressors'
     return {name: {
         'trace': get_trace(name, m.ds, regs),
@@ -61,7 +61,7 @@ def get_extra_regressors_component(m) -> COMPONENTS_TYPE:
 
 
 def get_seasonality_components(m) -> COMPONENTS_TYPE:
-    start_col = 2
+    start_col = m.seasonality_start_column
     components = {}
     for periods, n_terms in m.seasonality_terms.items():
         n_to_plot = np.ceil(periods).astype(np.int64)
@@ -82,7 +82,7 @@ def get_seasonality_components(m) -> COMPONENTS_TYPE:
 
 
 def get_regressor_components(m, regressor_names: list[str]) -> COMPONENTS_TYPE:
-    start_col = m.x_.shape[1] - m.n_regressors
+    start_col = m.regressor_start_column
     components = {}
     for i, name in enumerate(regressor_names):
         col = start_col + i
