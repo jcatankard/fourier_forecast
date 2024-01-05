@@ -19,6 +19,9 @@ class FourierForecast:
                  monthly_seasonality_terms: int = 0,
                  quarterly_seasonality_terms: int = 0,
                  yearly_seasonality_terms: int = 10,
+                 trend_reg: float = 0.0,
+                 seasonality_reg: float = 0.0,
+                 regressor_reg: float = 0.0,
                  log_y: bool = False
                  ):
 
@@ -31,7 +34,14 @@ class FourierForecast:
         self.seasonality_terms = {k: v for k, v in seasonality_terms.items() if v > 0}
         self.n_waves = 2 * sum(self.seasonality_terms.values())
 
+        self.seasonality_start_column = 2
+        self.regressor_start_column = 2 + self.n_waves
+
         self.log_y = log_y
+
+        self.trend_reg = trend_reg
+        self.seasonality_reg = seasonality_reg
+        self.regressor_reg = regressor_reg
 
         self.regressors: Optional[NDArray[np.float64]] = None
         self.n_regressors: Optional[int] = None
@@ -84,9 +94,13 @@ class FourierForecast:
             self.y *= sample_weight_sqrt[: np.newaxis]
 
     def _initiate_regularization_penalty(self) -> NDArray[np.int64]:
-        penalty = np.identity(self.x_.shape[1])
-        penalty[0][0] = 0  # for intercept
-        penalty *= 0  # set to zero for now
+        penalty = np.identity(self.x_.shape[1], dtype=np.float64)
+        penalty[0][0] = 0.0  # for intercept
+        penalty[1][1] = self.trend_reg
+        for i in range(self.seasonality_start_column, self.regressor_start_column):
+            penalty[i][i] = self.seasonality_reg
+        for i in range(self.regressor_start_column, self.x_.shape[1]):
+            penalty[i][i] = self.regressor_reg
         return penalty
 
     def _initiate_seasonalities(self, ds: NDArray[np.int64]) -> NDArray[np.float64]:
