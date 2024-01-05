@@ -180,10 +180,9 @@ class FourierForecast:
         """create intercept. later allow option for no intercept."""
         return np.ones(shape=(ds.size, 1), dtype=np.float64)
 
-    @staticmethod
-    def _initiate_trend(ds: NDArray[np.int64]) -> NDArray[np.float64]:
+    def _initiate_trend(self, ds: NDArray[np.int64]) -> NDArray[np.float64]:
         """create trend array. later allow option for flat trend."""
-        return ds.astype(np.float64).reshape(-1, 1)
+        return ds.astype(np.float64).reshape(-1, 1) / self.y.size
 
     def _initiate_regressors(self, regs: Optional[NDArray], size: int) -> NDArray[np.float64]:
         return np.zeros((size, self.n_regressors), dtype=np.float64) if regs is None else self._to_numpy(regs)
