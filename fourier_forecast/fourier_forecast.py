@@ -159,7 +159,8 @@ class FourierForecast:
     def _initiate_regularization_penalty(self) -> NDArray[np.int64]:
         penalty = np.identity(self.x_.shape[1], dtype=np.float64)
         penalty[0][0] = 0.0  # for intercept
-        penalty[1][1] = self.trend_reg
+        if self.growth != 'flat':
+            penalty[1][1] = self.trend_reg
         for i in range(self.seasonality_start_column, self.regressor_start_column):
             penalty[i][i] = self.seasonality_reg
         for i in range(self.regressor_start_column, self.x_.shape[1]):
