@@ -99,3 +99,23 @@ class TestFourierForecast(unittest.TestCase):
 
             assert np.abs(ff.fitted() - y).mean() < self.atol
             np.testing.assert_allclose(ff.fitted(), y, atol=self.atol, rtol=self.rtol)
+
+    def test_lags(self):
+        for i in range(self.n_tests):
+            print(f'lag tests: {i + 1}')
+            n_lags = np.random.randint(1, 10)
+
+            _, y, r = create_data(regressors=True, fourier_terms=[0, 0, 0, 0])
+
+            a = np.random.rand(n_lags) / (4 * n_lags)
+            for i in range(n_lags, y.size):
+                y[i] = (1 - sum(a[: n_lags])) * y[i]
+                for l in range(n_lags):
+                    y[i] += y[i - l - 1] * a[l]
+
+            ff = FourierForecast(n_lags=n_lags)
+            ff.fit(y, regressors=r)
+
+            fitted = ff.fitted()[n_lags:]
+            assert np.abs(fitted - y[n_lags:]).mean() < self.atol
+            np.testing.assert_allclose(fitted, y[n_lags:], atol=self.atol, rtol=self.rtol)
