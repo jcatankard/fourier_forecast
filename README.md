@@ -92,7 +92,7 @@ and optional regressors.
 ### fit and predict example
 ```python
 from fourier_forecast.fourier_forecast import FourierForecast
-import matplotlib.pyplot as plt
+import plotly.graph_objs as go
 
 
 dates = ...
@@ -110,11 +110,12 @@ ff = FourierForecast()
 ff.fit(train_actuals)
 preds = ff.predict(h=n_predict)
 
-plt.plot(dates, actuals, label='actuals')
-plt.plot(train_dates, preds[: n_train], label='train')
-plt.plot(dates[n_train: ], preds, label='preds')
-plt.legend()
-plt.show()
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=dates, y=actuals, mode='lines', name='actuals'))
+fig.add_trace(go.Scatter(x=dates[: n_train], y=ff.fitted(), mode='lines', name='fitted'))
+fig.add_trace(go.Scatter(x=dates[n_train:], y=preds, mode='lines', name='preds'))
+fig.update_layout(showlegend=True)
+fig.show()
 ```
 <p float="left">
   <img src="./images/example_train_preds.png" width="100%" />
@@ -128,10 +129,13 @@ from fourier_forecast.fourier_forecast import FourierForecast
 actuals = ...
 regressors = ...
 
-ff = FourierForecast(weekly_seasonality_terms=1,
-                     monthly_seasonality_terms=1,
-                     quarterly_seasonality_terms=1,
-                     yearly_seasonality_terms=1
+ff = FourierForecast(weekly_seasonality_terms=3,
+                     monthly_seasonality_terms=5,
+                     quarterly_seasonality_terms=5,
+                     yearly_seasonality_terms=7,
+                     growth='logistic',
+                     log_y=True,
+                     n_lags=7
                      )
                      
 ff.fit(actuals, regressors)
@@ -140,47 +144,3 @@ ff.plot_components()
 <p float="left">
   <img src="./images/example_plot_components.png" width="100%" />
 </p>
-
-### fourier order example with plot_components()
-```python
-from fourier_forecast.fourier_forecast import FourierForecast
-
-
-actuals = ...
-
-ff = FourierForecast(weekly_seasonality_terms=3,
-                     monthly_seasonality_terms=0,
-                     quarterly_seasonality_terms=0,
-                     yearly_seasonality_terms=10
-                     )      
-ff.fit(actuals)
-ff.plot_components()
-```
-<p float="left">
-  <img src="./images/example_fourier_order.png" width="100%" />
-</p>
-
-### multiplicative seasonality example
-```python
-from fourier_forecast.fourier_forecast import FourierForecast
-import numpy as np
-
-
-dates = ...
-actuals = ...
-regressors = ...
-
-train_test_split = .8
-n_train = int(len(dates) * train_test_split)
-n_predict = len(dates) - n_train
-
-ff = FourierForecast() 
-ff.fit(y=np.log(actuals[: n_train]),
-       regressors=regressors[: n_train]
-       )
-preds = np.exp(
-    ff.predict(h=n_predict, regressors=regressors[n_train: ])
-)
-mape = np.absolute(preds / actuals[n_train: ] - 1) / n_predict
-print(mape)
-```
