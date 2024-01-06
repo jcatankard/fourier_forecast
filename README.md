@@ -25,7 +25,6 @@ optional regressors and noise.
 
 ### Future updates:
  - prediction intervals
- - scale lags and autoregressors
 
 ## FourierForecast
 ### Parameters
@@ -56,7 +55,7 @@ optional regressors and noise.
     - larger values (~1-100) dampen the seasonality.
 - log_y: bool, default=True
     - takes the natural logarithm of the timeseries before fitting (and the exponent after predicting)
-    - all values must be positive or reverts bact to False
+    - all values must be positive or reverts back to False
     - useful for fitting interactive effects between seasonality, trend and regressors
 
 ### Methods
