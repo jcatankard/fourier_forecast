@@ -9,6 +9,8 @@ if __name__ == '__main__':
 
     lag_terms = 0
     log_y = False
+    growth = 'linear'
+    regressors = False
     noise_scale = 500 if log_y else 2.5
     fourier_terms = {
         'weekly_seasonality_terms': 3,
@@ -17,10 +19,11 @@ if __name__ == '__main__':
         'yearly_seasonality_terms': 10
     }
 
-    ds, clean, regressors = create_data(regressors=True,
+    ds, clean, regressors = create_data(regressors=regressors,
                                         fourier_terms=list(fourier_terms.values()),
                                         log_y=log_y,
-                                        n_lags=lag_terms
+                                        n_lags=lag_terms,
+                                        growth=growth
                                         )
 
     actuals = clean + np.random.normal(0, 1, ds.size) * noise_scale
@@ -29,7 +32,7 @@ if __name__ == '__main__':
                          seasonality_reg=0,
                          regressor_reg=0,
                          trend_reg=0,
-                         growth='linear',
+                         growth=growth,
                          n_lags=lag_terms,
                          **fourier_terms
                          )
