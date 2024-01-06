@@ -1,11 +1,14 @@
 # FourierForecast
-A time-series modelling approach that decomposes a daily time-series into seasonality, trend, bias,
-optional regressors and noise.
+A time-series forecaster that fits by decomposing a daily time-series into seasonality, trend
+and optional regressors.
  
-- Seasonality types & Fourier terms are specified
-- Seasonality components, trends, bias and regressors are fit with gradient descent
+- Fits seasonality & Fourier terms specified
+- Fits specified trend type (e.g. linear, flat, logistic, logarithmic)
+- Fits exogenous regressors
+- Fits specified number of lag terms
+- Option to include terms for regularizing fit for different types of component
+- Optional log transform of time-series to model interaction amongst components (not just interaction with trend)
 - Components can be visualised with plot_components method
-- Numba is used for performance boost
 
 ### Blog posts:
  - [Part I](https://medium.com/@jcatankard_76170/forecasting-with-fourier-series-8196721e7a3a)
@@ -20,8 +23,6 @@ optional regressors and noise.
    - monthly seasonality: 30.43 days
    - quarterly seasonality: 91.31 days
    - yearly seasonality: 365.25 days
-- If seasonal terms interact with each other (i.e. are not just additive), it may be best to log transform your time-series before fitting
-  - where necessary it may also be appropriate to log transform some or all regressors
 
 ### Future updates:
  - prediction intervals
@@ -78,9 +79,11 @@ optional regressors and noise.
 
 
  - plot_components
-   - plots bias, trends, seasonalities, regressors and noise
+   - plots bias, trends, individual seasonality terms, regressors and lags
  - plot_seasonality_components
-   - plots seasonalities only
+   - plots individual seasonalities terms
+ - plot_lag_components
+   - plots individual lags in their own subplot
  - plot_regression_components
    - regressor_names: list[str], default=None
    - plots individual regressors as their own subplot
