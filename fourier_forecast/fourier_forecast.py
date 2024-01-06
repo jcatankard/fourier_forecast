@@ -17,7 +17,7 @@ DAYS_IN_YEAR = 365.25
 
 
 class FourierForecast:
-    """Timeseries forecaster for daily timeseries using Fourier series, trend and exogenous regressors"""
+    """Timeseries forecaster for daily timeseries using Fourier series, trend, lags and exogenous regressors"""
 
     def __init__(self,
                  growth: str = 'linear',
