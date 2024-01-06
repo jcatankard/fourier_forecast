@@ -26,6 +26,7 @@ optional regressors and noise.
 ### Future updates:
  - prediction intervals
  - add autoregression lags
+ - scale lags and autoregressors
 
 ## FourierForecast
 ### Parameters
