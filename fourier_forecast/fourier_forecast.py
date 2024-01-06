@@ -67,13 +67,9 @@ class FourierForecast:
         self.n_lags = n_lags
         self.log_y = log_y
 
-        seasonality_terms = {
-            DAYS_IN_WEEK: weekly_seasonality_terms,
-            DAYS_IN_MONTH: monthly_seasonality_terms,
-            DAYS_IN_QUARTER: quarterly_seasonality_terms,
-            DAYS_IN_YEAR: yearly_seasonality_terms
-        }
-        self.seasonality_terms = {k: v for k, v in seasonality_terms.items() if v > 0}
+        self.seasonality_terms = self._validate_seasonalities(weekly_seasonality_terms, monthly_seasonality_terms,
+                                                              quarterly_seasonality_terms, yearly_seasonality_terms
+                                                              )
         self.n_waves = 2 * sum(self.seasonality_terms.values())
 
         self.seasonality_start_column = 1 if growth == 'flat' else 2
@@ -271,6 +267,21 @@ class FourierForecast:
     @staticmethod
     def _to_numpy(a) -> NDArray[np.float64]:
         return np.asarray(a, dtype=np.float64, order='C')
+
+    @staticmethod
+    def _validate_seasonalities(ws_terms: int, ms_terms: int, qs_terms: int, ys_terms: int) -> dict[str, int]:
+        terms = {
+            DAYS_IN_WEEK: ws_terms,
+            DAYS_IN_MONTH: ms_terms,
+            DAYS_IN_QUARTER: qs_terms,
+            DAYS_IN_YEAR: ys_terms
+        }
+        for k, v in terms.items():
+            if v >= np.floor(k):
+                raise ValueError(
+                    f"""The number of Fourier terms specified for seasonality of {k} days
+                     must be < {np.floor(k).astype(int)}. Value pass: {v}.""")
+        return {k: v for k, v in terms.items() if v > 0}
 
 
 def _walk(h: int,
