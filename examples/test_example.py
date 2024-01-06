@@ -7,6 +7,7 @@ import time
 
 if __name__ == '__main__':
 
+    lag_terms = 0
     log_y = False
     noise_scale = 500 if log_y else 2.5
     fourier_terms = {
@@ -18,7 +19,8 @@ if __name__ == '__main__':
 
     ds, clean, regressors = create_data(regressors=True,
                                         fourier_terms=list(fourier_terms.values()),
-                                        log_y=log_y
+                                        log_y=log_y,
+                                        n_lags=lag_terms
                                         )
 
     actuals = clean + np.random.normal(0, 1, ds.size) * noise_scale
@@ -28,15 +30,18 @@ if __name__ == '__main__':
                          regressor_reg=0,
                          trend_reg=0,
                          growth='linear',
+                         n_lags=lag_terms,
                          **fourier_terms
                          )
     n = 700
     start = time.time()
     ff.fit(actuals[: n], regressors=regressors[: n])
     print('Time to fit:', round(time.time() - start, 3))
+
     ff.plot_components().show()
     # ff.plot_seasonality_components().show()
     # ff.plot_regressor_components().show()
+    # ff.plot_lag_components().show()
 
     pred = ff.predict(h=ds.size - n, regressors=regressors[n:])
 
