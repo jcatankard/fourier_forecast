@@ -21,9 +21,11 @@ class FourierForecast:
                  monthly_seasonality_terms: int = 0,
                  quarterly_seasonality_terms: int = 0,
                  yearly_seasonality_terms: int = 10,
+                 n_lags: int = 0,
                  trend_reg: float = 0.0,
                  seasonality_reg: float = 0.0,
                  regressor_reg: float = 0.0,
+                 ar_reg: float = 0.0,
                  log_y: bool = False
                  ):
         """
@@ -48,12 +50,18 @@ class FourierForecast:
             - parameter regulating strength of regressors fit
             - smaller values (~0-1) allow the model to fit larger seasonal fluctuations,
             - larger values (~1-100) dampen the seasonality.
+        :param ar_reg: float, default=0
+            - parameter regulating strength of fit against lags
+            - smaller values (~0-1) allow the model to fit larger seasonal fluctuations,
+            - larger values (~1-100) dampen the seasonality.
         :param log_y: bool, default=True
             - takes the natural logarithm of the timeseries before fitting (and the exponent after predicting)
             - all values must be positive or reverts bact to False
             - useful for fitting interactive effects between seasonality, trend and regressors
         """
         self.growth = growth
+        self.n_lags = n_lags
+        self.log_y = log_y
 
         seasonality_terms = {
             DAYS_IN_WEEK: weekly_seasonality_terms,
@@ -65,13 +73,13 @@ class FourierForecast:
         self.n_waves = 2 * sum(self.seasonality_terms.values())
 
         self.seasonality_start_column = 1 if growth == 'flat' else 2
-        self.regressor_start_column = self.seasonality_start_column + self.n_waves
-
-        self.log_y = log_y
+        self.lag_start_column = self.seasonality_start_column + self.n_waves
+        self.regressor_start_column = self.lag_start_column + n_lags
 
         self.trend_reg = trend_reg
         self.seasonality_reg = seasonality_reg
         self.regressor_reg = regressor_reg
+        self.ar_reg = ar_reg
 
         self.regressors: Optional[NDArray[np.float64]] = None
         self.n_regressors: Optional[int] = None
@@ -110,13 +118,16 @@ class FourierForecast:
             self._initiate_bias(self.ds),
             self._initiate_trend(self.ds),
             self._initiate_seasonalities(self.ds),
+            self._initiate_lags(y=self.y, size=y.size),
             self._initiate_regressors(regressors, y.size)
         ], axis=1)
 
         self._rescale_data()
 
         penalty = self._initiate_regularization_penalty()
-        self.params_ = np.linalg.inv(self.x_.T @ self.x_ + penalty) @ self.x_.T @ self.y
+        x = self.x_[self.n_lags:]
+        y = self.y[self.n_lags:]
+        self.params_ = np.linalg.inv(x.T @ x + penalty) @ x.T @ y
 
     def fitted(self) -> NDArray[np.float64]:
         """returns fitted values"""
@@ -134,10 +145,19 @@ class FourierForecast:
             self._initiate_bias(ds),
             self._initiate_trend(ds),
             self._initiate_seasonalities(ds),
+            self._initiate_lags(size=h),
             self._initiate_regressors(regressors, h)
         ], axis=1)
 
-        preds = x @ self.params_
+        if self.n_lags == 0:
+            preds = x @ self.params_
+
+        else:
+            x = np.concatenate([self.x_, x], axis=0)
+            y = np.concatenate([self.y, np.zeros(h, dtype=np.float64)], axis=0)
+            y = _walk(h, self.pred_start, x, y, self.params_, self.lag_start_column, self.regressor_start_column)
+            preds = y[self.pred_start:]
+
         return np.exp(preds) if self.log_y else preds
 
     def plot_components(self) -> go.Figure:
@@ -161,11 +181,19 @@ class FourierForecast:
         penalty[0][0] = 0.0  # for intercept
         if self.growth != 'flat':
             penalty[1][1] = self.trend_reg
-        for i in range(self.seasonality_start_column, self.regressor_start_column):
+        for i in range(self.seasonality_start_column, self.lag_start_column):
             penalty[i][i] = self.seasonality_reg
+        for i in range(self.lag_start_column, self.regressor_start_column):
+            penalty[i][i] = self.ar_reg
         for i in range(self.regressor_start_column, self.x_.shape[1]):
             penalty[i][i] = self.regressor_reg
         return penalty
+
+    def _initiate_lags(self, size: int, y: Optional[NDArray[np.float64]] = None) -> NDArray[np.float64]:
+        if (y is None) | (self.n_lags == 0):
+            return np.zeros((self.n_lags, size), dtype=np.float64).T
+        else:
+            return np.array([np.roll(self.y, l) for l in range(1, self.n_lags + 1)]).T
 
     def _initiate_seasonalities(self, ds: NDArray[np.int64]) -> NDArray[np.float64]:
         count = 0
@@ -176,7 +204,6 @@ class FourierForecast:
                 waves[count] = np.sin(2 * np.pi * ds * f, dtype=np.float64)
                 waves[count + 1] = np.cos(2 * np.pi * ds * f, dtype=np.float64)
                 count += 2
-
         return waves.T
 
     @staticmethod
@@ -184,7 +211,7 @@ class FourierForecast:
         return np.ones(shape=(ds.size, 1), dtype=np.float64)
 
     def _initiate_trend(self, ds: NDArray[np.int64]) -> NDArray[np.float64]:
-        linear = ds.astype(np.float64).reshape(-1, 1) / self.y.size
+        linear = ds.astype(np.float64).reshape(-1, 1) / (self.y.size - 1)
         if self.growth == 'linear':
             return linear
         elif self.growth == 'logistic':
@@ -217,3 +244,21 @@ class FourierForecast:
     @staticmethod
     def _to_numpy(a) -> NDArray[np.float64]:
         return np.asarray(a, dtype=np.float64, order='C')
+
+
+def _walk(h: int,
+          pred_start: int,
+          x: NDArray[np.float64],
+          y: NDArray[np.float64],
+          weights: NDArray[np.float64],
+          lag_col_start: int,
+          regressor_col_start: int
+          ) -> NDArray[np.float64]:
+    """convert to Numba function if performance requires"""
+    for t in range(pred_start, pred_start + h):
+        lag = 0
+        for c in range(lag_col_start, regressor_col_start):
+            lag += 1
+            x[t][c] = y[t - lag]
+        y[t] = x[t] @ weights
+    return y
