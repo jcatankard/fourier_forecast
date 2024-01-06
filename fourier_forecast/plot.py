@@ -15,11 +15,18 @@ def plot_seasonality_components(m, figsize: tuple[int, int] = FIGSIZE) -> go.Fig
     return fig
 
 
+def plot_lag_components(m, figsize: tuple[int, int] = FIGSIZE) -> go.Figure:
+    components = get_lag_components(m)
+    fig = create_fig(components, figsize)
+    return fig
+
+
 def plot_regressor_components(m,
                               regressor_names: Optional[list[str]] = None,
                               figsize: tuple[int, int] = FIGSIZE
                               ) -> go.Figure:
-    regressor_names = list(map(str, range(m.n_regressors))) if regressor_names is None else regressor_names
+    if regressor_names is None:
+        regressor_names = [f"Regressor: {i + 1}" for i in range(m.n_regressors)]
     components = get_regressor_components(m, regressor_names)
     fig = create_fig(components, figsize)
     return fig
@@ -28,9 +35,10 @@ def plot_regressor_components(m,
 def plot_components(m, figsize: tuple[int, int] = FIGSIZE) -> go.Figure:
     trend = get_trend_component(m)
     seasonality = get_seasonality_components(m)
+    all_lags = get_combined_lags_component(m)
     extra_regressors = get_extra_regressors_component(m)
     components = {
-        **trend, **seasonality, **extra_regressors
+        **trend, **seasonality, **extra_regressors, **all_lags
     }
     fig = create_fig(components, figsize)
     return fig
@@ -60,6 +68,20 @@ def get_extra_regressors_component(m) -> COMPONENTS_TYPE:
     }
 
 
+def get_combined_lags_component(m) -> COMPONENTS_TYPE:
+    lags = (m.x_[:, m.lag_start_column: m.regressor_start_column]
+            @ m.params_[m.lag_start_column: m.regressor_start_column]
+            )
+    lags[: m.n_lags] = np.nan
+    name = 'all_lags'
+    return {name: {
+        'trace': get_trace(name, m.ds, lags),
+        'xaxis': go.layout.XAxis(range=[min(m.ds), max(m.ds)]),
+        'yaxis': go.layout.YAxis(title=go.layout.yaxis.Title(text=name))
+    }
+    }
+
+
 def get_seasonality_components(m) -> COMPONENTS_TYPE:
     start_col = m.seasonality_start_column
     components = {}
@@ -82,13 +104,27 @@ def get_seasonality_components(m) -> COMPONENTS_TYPE:
 
 
 def get_regressor_components(m, regressor_names: list[str]) -> COMPONENTS_TYPE:
-    start_col = m.regressor_start_column
     components = {}
     for i, name in enumerate(regressor_names):
-        col = start_col + i
+        col = m.regressor_start_column + i
         reg = m.x_[:, col] * m.params_[col]
         components[name] = {
             'trace': get_trace(name, m.ds, reg),
+            'xaxis': go.layout.XAxis(range=[min(m.ds), max(m.ds)]),
+            'yaxis': go.layout.YAxis(title=go.layout.yaxis.Title(text=name))
+        }
+    return components
+
+
+def get_lag_components(m) -> COMPONENTS_TYPE:
+    components = {}
+    for i in range(m.n_lags):
+        name = f"Lag term: {i + 1}"
+        col = m.lag_start_column + i
+        lag = m.x_[:, col] * m.params_[col]
+        lag[: i + 1] = np.nan
+        components[name] = {
+            'trace': get_trace(name, m.ds, lag),
             'xaxis': go.layout.XAxis(range=[min(m.ds), max(m.ds)]),
             'yaxis': go.layout.YAxis(title=go.layout.yaxis.Title(text=name))
         }

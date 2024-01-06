@@ -1,4 +1,8 @@
-from fourier_forecast.plot import plot_components, plot_regressor_components, plot_seasonality_components
+from fourier_forecast.plot import (plot_components,
+                                   plot_regressor_components,
+                                   plot_seasonality_components,
+                                   plot_lag_components
+                                   )
 from numpy.typing import NDArray
 import plotly.graph_objs as go
 from typing import Optional
@@ -168,6 +172,9 @@ class FourierForecast:
 
     def plot_seasonality_components(self) -> go.Figure:
         return plot_seasonality_components(self)
+
+    def plot_lag_components(self) -> go.Figure:
+        return plot_lag_components(self)
 
     def _rescale_data(self):
         """reference: https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/linear_model/_base.py"""
