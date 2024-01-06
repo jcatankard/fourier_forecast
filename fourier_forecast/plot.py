@@ -58,7 +58,7 @@ def get_trend_component(m) -> COMPONENTS_TYPE:
 
 
 def get_extra_regressors_component(m) -> COMPONENTS_TYPE:
-    regs = m.x_[:, -m.regressor_start_column:] @ m.params_[-m.regressor_start_column:]
+    regs = m.x_[:, m.regressor_start_column:] @ m.params_[m.regressor_start_column:]
     name = 'extra_regressors'
     return {name: {
         'trace': get_trace(name, m.ds, regs),
