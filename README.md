@@ -25,7 +25,6 @@ optional regressors and noise.
 
 ### Future updates:
  - prediction intervals
- - add autoregression lags
  - scale lags and autoregressors
 
 ## FourierForecast
@@ -49,6 +48,10 @@ optional regressors and noise.
     - larger values (~1-100) dampen the seasonality.
 - regressor_reg: float, default=0
     - parameter regulating strength of regressors fit
+    - smaller values (~0-1) allow the model to fit larger seasonal fluctuations,
+    - larger values (~1-100) dampen the seasonality.
+- ar_reg: float, default=0
+    - parameter regulating strength of fit against lags
     - smaller values (~0-1) allow the model to fit larger seasonal fluctuations,
     - larger values (~1-100) dampen the seasonality.
 - log_y: bool, default=True
