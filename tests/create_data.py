@@ -35,10 +35,21 @@ def make_bias(t: NDArray[np.int64], log_y: bool) -> NDArray:
     return sign * np.random.randint(1, 100) * np.ones(t.size)
 
 
+def convert_to_lagged_data(y: NDArray, n_lags: int):
+    if n_lags > 0:
+        a = np.random.rand(n_lags) / (4 * n_lags)
+        for i in range(n_lags, y.size):
+            y[i] = (1 - sum(a[: n_lags])) * y[i]
+            for l in range(n_lags):
+                y[i] += y[i - l - 1] * a[l]
+    return y
+
+
 def create_data(regressors: bool,
                 fourier_terms: list,
                 log_y: bool = False,
-                growth: str = 'linear'
+                growth: str = 'linear',
+                n_lags: int = 0
                 ) -> tuple[NDArray[date], NDArray[np.float64], NDArray[np.float64]]:
 
     size = np.random.randint(366 * 2, 366 * 3)
@@ -60,5 +71,7 @@ def create_data(regressors: bool,
     if log_y:
         y_clean = (y_clean - y_clean.min()) / (y_clean.max() - y_clean.min())
         y_clean = np.exp(y_clean + 10)
+
+    y_clean = convert_to_lagged_data(y_clean, n_lags)
 
     return ds, y_clean, regressor_x

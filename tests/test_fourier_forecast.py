@@ -105,13 +105,7 @@ class TestFourierForecast(unittest.TestCase):
             print(f'lag tests: {i + 1}')
             n_lags = np.random.randint(1, 10)
 
-            _, y, r = create_data(regressors=True, fourier_terms=[0, 0, 0, 0])
-
-            a = np.random.rand(n_lags) / (4 * n_lags)
-            for i in range(n_lags, y.size):
-                y[i] = (1 - sum(a[: n_lags])) * y[i]
-                for l in range(n_lags):
-                    y[i] += y[i - l - 1] * a[l]
+            _, y, r = create_data(regressors=True, fourier_terms=[0, 0, 0, 0], n_lags=n_lags)
 
             ff = FourierForecast(n_lags=n_lags)
             ff.fit(y, regressors=r)
