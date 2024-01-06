@@ -94,6 +94,7 @@ class FourierForecast:
         self.sample_weight: Optional[NDArray[np.float64]] = None
         self.x_: Optional[NDArray[np.float64]] = None
         self.params_: Optional[NDArray[np.float64]] = None
+        self.lag_scaler: Optional[float] = None
 
     def fit(self,
             y: NDArray[np.float64],
@@ -126,7 +127,9 @@ class FourierForecast:
             self._initiate_regressors(regressors, y.size)
         ], axis=1)
 
-        self._rescale_data()
+        self.x_ = self._shrink_regressors(self.x_)
+        self.x_ = self._shrink_lags(self.x_)
+        self._rescale_data_for_sample_weight()
 
         penalty = self._initiate_regularization_penalty()
         x = self.x_[self.n_lags:]
@@ -153,13 +156,16 @@ class FourierForecast:
             self._initiate_regressors(regressors, h)
         ], axis=1)
 
+        x = self._shrink_regressors(x)
+
         if self.n_lags == 0:
             preds = x @ self.params_
 
         else:
             x = np.concatenate([self.x_, x], axis=0)
             y = np.concatenate([self.y, np.zeros(h, dtype=np.float64)], axis=0)
-            y = _walk(h, self.pred_start, x, y, self.params_, self.lag_start_column, self.regressor_start_column)
+            y = _walk(h, self.pred_start, x, y, self.params_, self.lag_start_column, self.regressor_start_column,
+                      self.lag_scaler)
             preds = y[self.pred_start:]
 
         return np.exp(preds) if self.log_y else preds
@@ -176,7 +182,21 @@ class FourierForecast:
     def plot_lag_components(self) -> go.Figure:
         return plot_lag_components(self)
 
-    def _rescale_data(self):
+    def _shrink_regressors(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
+        """reducing values between -1 & 1 for regularization"""
+        shrink_terms = np.absolute(self.x_[:, self.regressor_start_column:]).max(axis=0)
+        x[:, self.regressor_start_column:] = x[:, self.regressor_start_column:] / shrink_terms
+        return x
+
+    def _shrink_lags(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
+        """reducing values between -1 & 1 for regularization"""
+        if self.n_lags > 0:
+            self.lag_scaler = np.absolute(self.y).max()
+            x[:, self.lag_start_column: self.regressor_start_column] = (
+                    x[:, self.lag_start_column: self.regressor_start_column] / self.lag_scaler)
+        return x
+
+    def _rescale_data_for_sample_weight(self):
         """reference: https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/linear_model/_base.py"""
         if self.sample_weight is not None:
             sample_weight_sqrt = np.sqrt(self.sample_weight)
@@ -259,13 +279,14 @@ def _walk(h: int,
           y: NDArray[np.float64],
           weights: NDArray[np.float64],
           lag_col_start: int,
-          regressor_col_start: int
+          regressor_col_start: int,
+          lag_scaler: float
           ) -> NDArray[np.float64]:
     """convert to Numba function if performance requires"""
     for t in range(pred_start, pred_start + h):
         lag = 0
         for c in range(lag_col_start, regressor_col_start):
             lag += 1
-            x[t][c] = y[t - lag]
+            x[t][c] = y[t - lag] / lag_scaler
         y[t] = x[t] @ weights
     return y
