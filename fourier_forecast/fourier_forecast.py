@@ -91,6 +91,7 @@ class FourierForecast:
         self.x_: Optional[NDArray[np.float64]] = None
         self.params_: Optional[NDArray[np.float64]] = None
         self.lag_scaler: Optional[float] = None
+        self.regressor_scalers: Optional[NDArray[np.float64]] = None
 
     def fit(self,
             y: NDArray[np.float64],
@@ -123,8 +124,8 @@ class FourierForecast:
             self._initiate_regressors(regressors, y.size)
         ], axis=1)
 
-        self.x_ = self._shrink_regressors(self.x_)
-        self.x_ = self._shrink_lags(self.x_)
+        self.x_ = self._shrink_regressors(self.x_, is_fit=True)
+        self.x_ = self._shrink_lags(self.x_, is_fit=True)
         self._rescale_data_for_sample_weight()
 
         penalty = self._initiate_regularization_penalty()
@@ -152,7 +153,7 @@ class FourierForecast:
             self._initiate_regressors(regressors, h)
         ], axis=1)
 
-        x = self._shrink_regressors(x)
+        x = self._shrink_regressors(x, is_fit=False)
 
         if self.n_lags == 0:
             preds = x @ self.params_
@@ -178,18 +179,20 @@ class FourierForecast:
     def plot_lag_components(self) -> go.Figure:
         return plot_lag_components(self)
 
-    def _shrink_regressors(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _shrink_regressors(self, x: NDArray[np.float64], is_fit: bool) -> NDArray[np.float64]:
         """reducing values between -1 & 1 for regularization"""
-        shrink_terms = np.absolute(self.x_[:, self.regressor_start_column:]).max(axis=0)
-        x[:, self.regressor_start_column:] = x[:, self.regressor_start_column:] / shrink_terms
+        if is_fit:
+            self.regressor_scalers = np.absolute(self.x_[:, self.regressor_start_column:]).max(axis=0)
+        x[:, self.regressor_start_column:] = x[:, self.regressor_start_column:] / self.regressor_scalers
         return x
 
-    def _shrink_lags(self, x: NDArray[np.float64]) -> NDArray[np.float64]:
+    def _shrink_lags(self, x: NDArray[np.float64], is_fit: bool) -> NDArray[np.float64]:
         """reducing values between -1 & 1 for regularization"""
         if self.n_lags > 0:
-            self.lag_scaler = np.absolute(self.y).max()
+            self.lag_scaler = np.absolute(self.y).max() if is_fit else self.lag_scaler
             x[:, self.lag_start_column: self.regressor_start_column] = (
-                    x[:, self.lag_start_column: self.regressor_start_column] / self.lag_scaler)
+                    x[:, self.lag_start_column: self.regressor_start_column] / self.lag_scaler
+            )
         return x
 
     def _rescale_data_for_sample_weight(self):
@@ -269,7 +272,7 @@ class FourierForecast:
         return np.asarray(a, dtype=np.float64, order='C')
 
     @staticmethod
-    def _validate_seasonalities(ws_terms: int, ms_terms: int, qs_terms: int, ys_terms: int) -> dict[str, int]:
+    def _validate_seasonalities(ws_terms: int, ms_terms: int, qs_terms: int, ys_terms: int) -> dict[int, int]:
         terms = {
             DAYS_IN_WEEK: ws_terms,
             DAYS_IN_MONTH: ms_terms,
